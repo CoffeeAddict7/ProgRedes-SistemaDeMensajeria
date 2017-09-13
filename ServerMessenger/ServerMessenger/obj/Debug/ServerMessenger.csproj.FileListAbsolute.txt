@@ -1,1 +1,7 @@
 Y:\Documents\Visual Studio 2015\Projects\CompProgTests\ServerMessenger\ServerMessenger\bin\Debug\ServerMessenger.exe.config
+Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Debug\ServerMessenger.exe.config
+Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Debug\ServerMessenger.exe
+Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Debug\ServerMessenger.pdb
+Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Debug\ServerMessenger.csprojResolveAssemblyReference.cache
+Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Debug\ServerMessenger.exe
+Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Debug\ServerMessenger.pdb

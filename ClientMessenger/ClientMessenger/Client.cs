@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -10,41 +11,55 @@ namespace ClientMessenger
 {
     class Client
     {
+        private static Socket tcpClient;
         static void Main(string[] args)
         {
             ConnectToServer();
         }
 
-        private static Boolean finishConnection = false;
+        private static bool loggedIn = true;
 
         private static void ConnectToServer()
         {
-            Socket tcpClient = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            var clientEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 0);
-            tcpClient.Bind(clientEndPoint);
+            InitializeClientConfiguration();
 
-            Console.WriteLine("Connecting to server...");
-            tcpClient.Connect(ServerMessenger.Server.SERVER_IP_END_POINT);
-            Console.WriteLine("Connected to server");
+            //Make register & login || login and then proceed to while loop            
 
-            while (!finishConnection)
+            NetworkStream netStream = new NetworkStream(tcpClient);
+            
+            while (loggedIn)
             {
-                var text = Console.ReadLine();
-                var dataToSend = GetBytes(text); //?
-                tcpClient.Send(dataToSend);
+                string message = Console.ReadLine();
+                Byte[] data = System.Text.Encoding.ASCII.GetBytes(message);
+                NetworkStream stream = new NetworkStream(tcpClient);
+                stream.Write(data, 0, data.Length);
+                Console.WriteLine("Sent: {0}", message);
+
+                data = new Byte[256];                
+                String responseData = String.Empty;
+                Int32 bytes = stream.Read(data, 0, data.Length);
+                responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
+                Console.WriteLine("Received: {0}", responseData);
+
+
+                // tcpClient.Send(data); //try catch
                 //Ask for commands
                 //Send Message
                 //Receive response
                 //Process Response
+                stream.Close();
                 tcpClient.Close();
-            }
-            Console.ReadLine();
+            }     
         }
-        static byte[] GetBytes(string str)
+
+        private static void InitializeClientConfiguration()
         {
-            byte[] bytes = new byte[str.Length * sizeof(char)];
-            System.Buffer.BlockCopy(str.ToCharArray(), 0, bytes, 0, bytes.Length);
-            return bytes;
+            tcpClient = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            var clientEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 0);
+            tcpClient.Bind(clientEndPoint);
+            Console.WriteLine("Connecting to server...");
+            tcpClient.Connect(ServerMessenger.Server.SERVER_IP_END_POINT);
+            Console.WriteLine("Connected to server");
         }
     }
 }
