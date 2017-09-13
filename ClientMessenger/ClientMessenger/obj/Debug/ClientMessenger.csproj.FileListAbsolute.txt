@@ -1,0 +1,2 @@
+Y:\Documents\Visual Studio 2015\Projects\CompProgTests\ClientMessenger\ClientMessenger\bin\Debug\ClientMessenger.exe.config
+Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Debug\ClientMessenger.exe.config
