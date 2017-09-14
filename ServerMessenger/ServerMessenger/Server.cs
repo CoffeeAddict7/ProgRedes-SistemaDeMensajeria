@@ -32,14 +32,14 @@ namespace ServerMessenger
             while (acceptingConnections) //Cambiar
             {
                 var clientSocket = tcpServer.Accept();
-                var thread = new Thread(() => ClientHandler(clientSocket));               
+                var thread = new Thread(() => ClientHandler(clientSocket));
                 thread.Start();
 
                 //Checkear si ya lo ingrese
                 activeClientThreads.Add(clientSocket, thread);
             }
 
-            CloseConnectionWithClients();
+            CloseServerConnection();
         }
 
         private static void InitializeServerConfiguration()
@@ -51,77 +51,101 @@ namespace ServerMessenger
             Console.WriteLine("Start waiting for clients");
         }
 
-        private static void CloseConnectionWithClients()
+        private static void CloseServerConnection()
         {
-            foreach(KeyValuePair<Socket,Thread> entry in activeClientThreads)
+            foreach (KeyValuePair<Socket, Thread> entry in activeClientThreads)
             {
                 entry.Key.Shutdown(SocketShutdown.Both);
-                entry.Key.Close();               
+                entry.Key.Close();
             }
+            tcpServer.Close();
         }
 
-        /*
-        private static void ClientHandler(Socket client)
+        private static int ReadFixedBytesFromPackage(Socket client ,StreamReader reader, ref StringBuilder sb)
         {
-            var buffer = new Byte[256];
-           
-            int received = 0, localReceived = 0;
-            while (received != PROTOCOL_FIXED_BYTES)
+            var buffer = new char[10000];
+            int received = 0, localReceived = 0, bytesLeftToRead = 0, packageLength = PROTOCOL_FIXED_BYTES;
+            while(received != PROTOCOL_FIXED_BYTES)
             {
-                int bytesToReceive = PROTOCOL_FIXED_BYTES - received;
-                try
-                {
-                    localReceived = client.Receive(buffer, received, bytesToReceive,SocketFlags.None);                
-                }
-                catch (Exception ex) { }
-
-                if(localReceived == 0)
-                {                   
-                    client.Shutdown(SocketShutdown.Both);
-                    client.Close();
-                }
+                bytesLeftToRead = PROTOCOL_FIXED_BYTES - received;
+                localReceived = reader.Read(buffer, received, bytesLeftToRead);
                 received += localReceived;
+
+                if (localReceived > 0)
+                {
+                    AppendBufferToStringBuilder(ref sb, buffer, received);
+                    Int32.TryParse(sb.ToString().Substring(5), out packageLength);
+                }
+                else
+                {
+                    EndConnection(client);
+                }
             }
-            var text = GetString(buffer);
-            
-            Console.WriteLine(text);            
-        }*/
+            return packageLength;
+        }
+
+        private static void ReadPayloadBytesFromPackage(Socket client, StreamReader reader, ref StringBuilder sb, int packageLength)
+        {
+            var payloadBuffer = new char[10000];
+            int received = 0, localReceived = 0, bytesLeftToRead = 0;
+            int payloadLength = packageLength - PROTOCOL_FIXED_BYTES;
+            while (received != payloadLength)
+            {
+                bytesLeftToRead = payloadLength - received;
+                localReceived = reader.Read(payloadBuffer, received, bytesLeftToRead);
+                received += localReceived;
+
+                if (localReceived > 0)
+                {
+                    AppendBufferToStringBuilder(ref sb, payloadBuffer, payloadLength);
+                }
+                else
+                {
+                    EndConnection(client);
+                }
+
+            }
+        }
 
         private static void ClientHandler(Socket client)
         {
             NetworkStream stream = new NetworkStream(client);
-
             using (var reader = new StreamReader(stream))
             {
                 var sb = new StringBuilder();
-                var buffer = new char[8192];
-                int received = 0, localReceived = 0;
+                int packageLength = ReadFixedBytesFromPackage(client, reader, ref sb);
+                ReadPayloadBytesFromPackage(client, reader, ref sb, packageLength);
 
-                while (received != PROTOCOL_FIXED_BYTES)
+                var payloadLength = packageLength - PROTOCOL_FIXED_BYTES;
+                var package = sb.ToString();
+
+                try { 
+                    ChatProtocol chatMsg = new ChatProtocol(package, payloadLength);
+                    ProcessMessage(client, chatMsg);
+                }catch(Exception ex)
                 {
-                    int bytesToReceive = PROTOCOL_FIXED_BYTES - received;
-                    localReceived = reader.Read(buffer, received, bytesToReceive);
-
-                    if (localReceived == 0)
-                    {
-                        client.Shutdown(SocketShutdown.Both);
-                        client.Close();
-                    }
-                    received += localReceived;
-
-                    if (localReceived > 0)
-                    {
-                        var buffer2 = new char[received];
-                        Array.Copy(buffer, buffer2, received);
-                        sb.Append(buffer2);
-
-                        // if sb meets some criteria, process the data...
-                        Console.WriteLine(sb.ToString());
-                    }
-                    else
-                        Console.WriteLine("Client disconnected!");
+                    //Show in console
                 }
             }
+            stream.Close();//
+        }
+
+        private static void ProcessMessage(Socket client, ChatProtocol chatMsg)
+        {
+            Console.WriteLine(chatMsg.Payload);
+        }
+
+        private static void EndConnection(Socket client)
+        {
+            client.Shutdown(SocketShutdown.Both);
+            client.Close();
+        }
+
+        private static void AppendBufferToStringBuilder(ref StringBuilder sb, char[] payloadBuffer, int payloadLength)
+        {
+            var bufferCopy = new char[payloadLength];
+            Array.Copy(payloadBuffer, bufferCopy, payloadLength);
+            sb.Append(bufferCopy);
         }
     }
 }

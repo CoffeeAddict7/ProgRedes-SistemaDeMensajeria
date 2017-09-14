@@ -38,11 +38,9 @@ namespace ClientMessenger
                 data = new Byte[256];                
                 String responseData = String.Empty;
                 Int32 bytes = stream.Read(data, 0, data.Length);
-                responseData = System.Text.Encoding.ASCII.GetString(data, 0, bytes);
+                responseData = Encoding.ASCII.GetString(data, 0, bytes);
                 Console.WriteLine("Received: {0}", responseData);
-
-
-                // tcpClient.Send(data); //try catch
+                            
                 //Ask for commands
                 //Send Message
                 //Receive response
