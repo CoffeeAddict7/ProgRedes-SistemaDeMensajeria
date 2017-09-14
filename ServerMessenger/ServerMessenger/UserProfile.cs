@@ -8,23 +8,39 @@ namespace ServerMessenger
 {
     public class UserProfile
     {
-        public string UserName { get; }
+        public string UserName { get; set; }
         private string Password;
-        public ICollection<UserProfile> Friends { get; }
-        public ICollection<UserProfile> PendingFriendRequest { get; }
-        
+        public int NumberOfConnections { get; set; }
+        public ICollection<UserProfile> Friends { get; set; }
+        public ICollection<UserProfile> PendingFriendRequest { get; set; }        
+        public ICollection<Tuple<DateTime, string>> PendingMessages { get; set; }
+        public IDictionary<UserProfile, Tuple<string, DateTime>> ChatLog { get; set; }
 
         public UserProfile(string userName, string password)
         {
             this.Friends = new List<UserProfile>();
             this.PendingFriendRequest = new List<UserProfile>();
+            this.PendingMessages = new List<Tuple<DateTime, string>>();
+            this.ChatLog = new Dictionary<UserProfile, Tuple<string, DateTime>>();
             this.UserName = userName;
             this.Password = password;
+            this.NumberOfConnections = 1;
         }
         
+        public void NewConnectionMade()
+        {
+            this.NumberOfConnections++;
+        }
+
         public bool IsFriendWith(string userName)
         {
             return this.Friends.Any(friend => friend.UserName.Equals(UserName));
+        }
+
+        public void AddFriendRequest(UserProfile profile)
+        {
+            //VALIDATIONS
+            this.PendingFriendRequest.Add(profile);
         }
 
         public int FriendsAmmount()

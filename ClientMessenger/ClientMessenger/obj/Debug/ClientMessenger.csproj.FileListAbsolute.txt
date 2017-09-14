@@ -5,5 +5,8 @@ Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Debug\Clien
 Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Debug\ServerMessenger.exe
 Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Debug\ServerMessenger.pdb
 Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Debug\ClientMessenger.csprojResolveAssemblyReference.cache
+Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Debug\ClientMessenger.ClientAppView.resources
+Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Debug\ClientMessenger.MainWindows.resources
+Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Debug\ClientMessenger.csproj.GenerateResource.Cache
 Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Debug\ClientMessenger.exe
 Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Debug\ClientMessenger.pdb
