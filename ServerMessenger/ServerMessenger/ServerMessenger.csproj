@@ -43,13 +43,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ChatProtocol.cs" />
     <Compile Include="Server.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UserProfile.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\ClientMessenger\ClientMessenger\ClientMessenger.csproj">
+      <Project>{3156aa2a-0732-4bbc-a130-993afc8b1384}</Project>
+      <Name>ClientMessenger</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\ClientMessenger\MessengerDomain\MessengerDomain.csproj">
+      <Project>{8ad99637-1d38-4973-bbfb-e714c90ae5b5}</Project>
+      <Name>MessengerDomain</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

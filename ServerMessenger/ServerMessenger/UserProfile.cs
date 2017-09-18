@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MessengerDomain;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,7 +10,7 @@ namespace ServerMessenger
     public class UserProfile
     {
         public string UserName { get; set; }
-        private string Password;
+        public string Password { get; set; }
         public int NumberOfConnections { get; set; }
         public ICollection<UserProfile> Friends { get; set; }
         public ICollection<UserProfile> PendingFriendRequest { get; set; }        
@@ -18,6 +19,7 @@ namespace ServerMessenger
 
         public UserProfile(string userName, string password)
         {
+            ValidateAttributesLength(userName, password);
             this.Friends = new List<UserProfile>();
             this.PendingFriendRequest = new List<UserProfile>();
             this.PendingMessages = new List<Tuple<DateTime, string>>();
@@ -26,7 +28,18 @@ namespace ServerMessenger
             this.Password = password;
             this.NumberOfConnections = 1;
         }
-        
+
+        private void ValidateAttributesLength(string userName, string password)
+        {
+            if(!ValidAttributeLength(userName) || !ValidAttributeLength(password))
+                throw new Exception("Error: login parameters must have at least 4 letters");
+        }
+
+        private bool ValidAttributeLength(string attribute)
+        {
+            return attribute != null && (attribute.Length >= ChatData.PROFILE_ATTRIBUTES_MIN_LENGTH);
+        }
+
         public void NewConnectionMade()
         {
             this.NumberOfConnections++;
@@ -47,6 +60,7 @@ namespace ServerMessenger
         {
             return Friends.Count;
         }
+
 
 
     }

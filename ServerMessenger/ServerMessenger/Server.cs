@@ -1,28 +1,41 @@
-﻿using System;
+﻿using MessengerDomain;
+using ClientMessenger;
+using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace ServerMessenger
 {
     public class Server
     {
-        public static IPEndPoint SERVER_IP_END_POINT = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 6500);
-        private static int MAX_ACTIVE_CONN = 100;
-        private static int PROTOCOL_FIXED_BYTES = 9;
         private static Boolean acceptingConnections = true;
 
         private static Dictionary<Socket, Thread> activeClientThreads;
         private static Socket tcpServer;
 
+        private static List<UserProfile> storedUserProfiles;
+        private static Dictionary<Socket,UserProfile> authorizedClients;
+
         static void Main(string[] args)
         {
+            LoadPersistenceStructures();
+            LoadUserProfiles();
             StartServer();
+        }
+
+        private static void LoadPersistenceStructures()
+        {
+            storedUserProfiles = new List<UserProfile>();
+            authorizedClients = new Dictionary<Socket, UserProfile>();
+        }
+
+        private static void LoadUserProfiles()
+        {
+            UserProfile luis = new UserProfile("LUIS", "PEPE");
+            storedUserProfiles.Add(luis);           
         }
 
         private static void StartServer()
@@ -46,8 +59,8 @@ namespace ServerMessenger
         {
             activeClientThreads = new Dictionary<Socket, Thread>();
             tcpServer = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            tcpServer.Bind(SERVER_IP_END_POINT);
-            tcpServer.Listen(MAX_ACTIVE_CONN);
+            tcpServer.Bind(ChatData.SERVER_IP_END_POINT);
+            tcpServer.Listen(ChatData.MAX_ACTIVE_CONN);
             Console.WriteLine("Start waiting for clients");
         }
 
@@ -64,10 +77,10 @@ namespace ServerMessenger
         private static int ReadFixedBytesFromPackage(Socket client ,StreamReader reader, ref StringBuilder sb)
         {
             var buffer = new char[10000];
-            int received = 0, localReceived = 0, bytesLeftToRead = 0, packageLength = PROTOCOL_FIXED_BYTES;
-            while(received != PROTOCOL_FIXED_BYTES)
+            int received = 0, localReceived = 0, bytesLeftToRead = 0, packageLength = ChatData.PROTOCOL_FIXED_BYTES;
+            while(received != ChatData.PROTOCOL_FIXED_BYTES)
             {
-                bytesLeftToRead = PROTOCOL_FIXED_BYTES - received;
+                bytesLeftToRead = ChatData.PROTOCOL_FIXED_BYTES - received;
                 localReceived = reader.Read(buffer, received, bytesLeftToRead);
                 received += localReceived;
 
@@ -88,7 +101,7 @@ namespace ServerMessenger
         {
             var payloadBuffer = new char[10000];
             int received = 0, localReceived = 0, bytesLeftToRead = 0;
-            int payloadLength = packageLength - PROTOCOL_FIXED_BYTES;
+            int payloadLength = packageLength - ChatData.PROTOCOL_FIXED_BYTES;
             while (received != payloadLength)
             {
                 bytesLeftToRead = payloadLength - received;
@@ -116,7 +129,7 @@ namespace ServerMessenger
                 int packageLength = ReadFixedBytesFromPackage(client, reader, ref sb);
                 ReadPayloadBytesFromPackage(client, reader, ref sb, packageLength);
 
-                var payloadLength = packageLength - PROTOCOL_FIXED_BYTES;
+                var payloadLength = packageLength - ChatData.PROTOCOL_FIXED_BYTES;
                 var package = sb.ToString();
 
                 try { 
@@ -133,6 +146,123 @@ namespace ServerMessenger
         private static void ProcessMessage(Socket client, ChatProtocol chatMsg)
         {
             Console.WriteLine(chatMsg.Payload);
+            ValidateClientHeader(chatMsg);
+            try
+            {
+                ProcessByProtocolCommmand(client, chatMsg);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message); //Devolver mensaje al cliente
+            }
+            
+        }
+
+        private static void ProcessByProtocolCommmand(Socket client, ChatProtocol chatMsg)
+        {
+            switch (chatMsg.Command)
+            {
+                case 1:
+                    Console.WriteLine("Loggin request by " + client.RemoteEndPoint);
+                    ProcessLoginRequest(client, chatMsg.Payload);
+                    break;
+                default:
+                    throw new Exception("Error: Unidentified command");
+            }
+        }
+
+        private static void ProcessLoginRequest(Socket client, string payload)
+        {
+            var userProfileAttributes = payload.Split('#');
+            if (userProfileAttributes.Length != 2)
+                throw new Exception("Wrong login parameters separated by '#' ");
+
+            string user = userProfileAttributes[0];
+            string password = userProfileAttributes[1];
+            ValidateLoginInformation(client, user, password);
+
+        }
+
+        private static void ValidateLoginInformation(Socket client, string user, string password)
+        {
+            if (!ClientIsConnected(client))
+            {
+                LoginClientAsUserProfile(client, user, password);
+                Console.WriteLine("Success");//Response message with menu
+            }
+        }
+
+        private static bool ClientIsConnected(Socket client)
+        {
+           foreach(var cli in authorizedClients)
+            {
+                var connectedClient = cli.Key;
+                if (connectedClient.RemoteEndPoint.Equals(client.RemoteEndPoint))
+                    return true;
+            }
+            return false;
+        }
+
+        private static void LoginClientAsUserProfile(Socket client, string user, string password)
+        {
+            if (ProfileUserNameExists(user))
+            {
+                var profile = ExtractProfileFromAttributes(user, password);
+                if (!ProfileIsConnectedToAClient(user))
+                {
+                    authorizedClients.Add(client, profile);
+                    profile.NewConnectionMade();
+                    Console.WriteLine("Number of connections -> " + profile.NumberOfConnections);
+                    //Responder al cliente menu
+                }
+                else
+                {
+                    throw new Exception("Error: Profile already logged in");
+                }
+            }
+            else
+            {
+                CreateProfileAndLogin(client, user, password);
+            }
+        }
+
+        private static void CreateProfileAndLogin(Socket client, string user, string password)
+        {
+            UserProfile profile = new UserProfile(user, password);
+            storedUserProfiles.Add(profile);
+            authorizedClients.Add(client,profile);
+        }
+
+
+        private static bool ProfileIsConnectedToAClient(string user)
+        {
+            foreach(var loggedClient in authorizedClients)
+            {
+                var clientProfile = loggedClient.Value;
+                if (clientProfile.UserName.Equals(user))
+                    return true;
+            }
+            return false;
+        }
+
+        private static bool ProfileUserNameExists(string user)
+        {
+            return storedUserProfiles.Exists(us => us.UserName.Equals(user));
+        }
+
+        private static UserProfile ExtractProfileFromAttributes(string user, string password)
+        {
+           var profile = storedUserProfiles.Find(prof => prof.UserName.Equals(user) && prof.Password.Equals(password));
+            if (profile == null)
+                throw new Exception("Error: Incorrect profile password");
+            else
+                return profile;            
+        }
+
+        private static void ValidateClientHeader(ChatProtocol chatMsg)
+        {
+            if (!chatMsg.Header.Equals(ChatData.REQUEST_HEADER))
+                Console.WriteLine("Wrong client header");
         }
 
         private static void EndConnection(Socket client)

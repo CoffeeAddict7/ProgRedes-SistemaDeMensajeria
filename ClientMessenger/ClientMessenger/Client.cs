@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MessengerDomain;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,15 +11,11 @@ using System.Windows.Forms;
 
 namespace ClientMessenger
 {
-    class Client
+    public class Client
     {
         private static Socket tcpClient;
-        [STAThread]
         static void Main()
         {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new ClientAppView());
             ConnectToServer();
         }
 
@@ -61,7 +58,7 @@ namespace ClientMessenger
             var clientEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 0);
             tcpClient.Bind(clientEndPoint);
             Console.WriteLine("Connecting to server...");
-            tcpClient.Connect(ServerMessenger.Server.SERVER_IP_END_POINT);
+            tcpClient.Connect(ChatData.SERVER_IP_END_POINT);
             Console.WriteLine("Connected to server");
         }
     }

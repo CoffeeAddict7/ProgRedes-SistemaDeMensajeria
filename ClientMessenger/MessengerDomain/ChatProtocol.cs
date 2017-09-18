@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using MessengerDomain;
 
 namespace ServerMessenger
 {
@@ -10,7 +9,7 @@ namespace ServerMessenger
     {
         private static int HEADER_INDEX = 0;
         private static int CMD_INDEX = 3;
-        private static int PAYLOAD_INDEX = 9;        
+        private static int PAYLOAD_INDEX = 9;    
 
         public string Header { get; set; }
         public int Command { get; set; }
@@ -50,7 +49,7 @@ namespace ServerMessenger
 
         private bool ValidHeader(string header)
         {
-            ICollection<string> acceptedHeaders = new List<String> { "REQ", "RES" };
+            ICollection<string> acceptedHeaders = new List<String> { ChatData.REQUEST_HEADER, ChatData.RESPONSE_HEADER };
             return acceptedHeaders.Any(h => h.Equals(header.ToUpper()));
         }
     }
