@@ -1,11 +1,11 @@
 ﻿using MessengerDomain;
-using ClientMessenger;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Linq;
 
 namespace ServerMessenger
 {
@@ -185,9 +185,50 @@ namespace ServerMessenger
                 case 2:
                     ProcessRegisterRequest(client, chatMsg.Payload);
                     break;
+                case 3:
+                    ProcessConnectedUsersRequest(client, chatMsg);
+                    break;
                 default:
                     throw new Exception("Error: Unidentified command");
             }
+        }
+
+        private static void ProcessConnectedUsersRequest(Socket client, ChatProtocol protocol)
+        {
+            if (!authorizedClients.ContainsKey(client))
+                throw new Exception("Error: To see online users you must be logged in");
+            string payload = GenerateConnectedUsersPayload(client);
+            ChatProtocol responseProtocol = chatManager.CreateResponseProtocol(protocol.Command, payload);
+            NotifyClientWithPackage(client, responseProtocol.Package);
+        }
+        private static string GenerateConnectedUsersPayload(Socket client)
+        {
+            string connectedUsers = "";
+            var onlineProf = authorizedClients.Select(d => d.Value).ToList();
+            UserProfile clientProf, profile, lastProfile;
+            authorizedClients.TryGetValue(client, out clientProf);
+            lastProfile = onlineProf.Last();
+            for(int index = 0; index < onlineProf.Count; index++)
+            {
+                profile = onlineProf[index];
+                if (DistinctUserProfiles(clientProf, profile))
+                {
+                    connectedUsers += profile.UserName;
+                    if (DistinctUserProfiles(profile, lastProfile) && !(IndexIsPenultimate(onlineProf.IndexOf(lastProfile), index) && !DistinctUserProfiles(clientProf, lastProfile)))
+                        connectedUsers += "#";
+                }
+            }
+            return connectedUsers;
+        }
+
+        private static bool IndexIsPenultimate(int listSize, int index)
+        {
+            return (index == listSize - 1);
+        }
+
+        private static bool DistinctUserProfiles(UserProfile clientProfile, UserProfile loggedProf)
+        {
+            return !loggedProf.UserName.Equals(clientProfile.UserName);
         }
 
         private static void ProcessLogoutRequest(Socket client, string payload)

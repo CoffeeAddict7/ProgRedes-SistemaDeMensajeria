@@ -14,13 +14,13 @@ namespace ServerMessenger
         public string Header { get; set; }
         public string Command { get; set; }
         public string Payload { get; set; }
-
+        public string Package { get; set; }
         public ChatProtocol(string package)
         {
             string header, cmd, payload;
             ExtractProtocolParameters(package, out header, out cmd, out payload);
             ValidateProtocolFields(header, cmd);
-            SetProtocolProperties(header, cmd, payload);
+            SetProtocolProperties(package, header, cmd, payload);
         }
 
         private static void ExtractProtocolParameters(string package, out string header, out string cmd, out string payload)
@@ -43,11 +43,12 @@ namespace ServerMessenger
             return intCmd;
         }
 
-        private void SetProtocolProperties(string header, string command, string payload)
+        private void SetProtocolProperties(string package, string header, string command, string payload)
         {
             this.Header = header;
             this.Command = command;
             this.Payload = payload;
+            this.Package = package;
         }
 
         private void ValidateProtocolFields(string header, string cmd)
