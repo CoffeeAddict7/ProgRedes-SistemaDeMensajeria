@@ -251,14 +251,10 @@ namespace ServerMessenger
 
         private static void ValidateLoginInformation(Socket client, string user, string password)
         {
-            if (!ClientIsConnected(client))
-            {
-                LoginClientAsUserProfile(client, user, password);
-                string resPackage = "RES010011OK";
-                NotifyClientWithPackage(client, resPackage);
-            }
-            else
-                throw new Exception("Error: Client already logged in");                           
+            LoginVerification(client, user);            
+            LoginClientAsUserProfile(client, user, password);
+            string resPackage = "RES010011OK";
+            NotifyClientWithPackage(client, resPackage);                               
         }
 
         private static void NotifyClientWithPackage(Socket client, string resPackage)
@@ -281,20 +277,20 @@ namespace ServerMessenger
 
         private static void LoginClientAsUserProfile(Socket client, string user, string password)
         {
-            if (ProfileUserNameExists(user))
-            {
-                var profile = ExtractProfileFromAttributes(user, password);
-                if (!ProfileIsConnectedToAClient(user))
-                {
-                    authorizedClients.Add(client, profile);
-                    profile.NewConnectionMade();
-                    Console.WriteLine("Number of connections -> " + profile.NumberOfConnections);
-                }
-                else
-                    throw new Exception("Error: Profile already logged in");                
-            }
-            else            
-                throw new Exception("Error: Profile username nonexistent");           
+            var profile = ExtractProfileFromAttributes(user, password);
+            authorizedClients.Add(client, profile);
+            profile.NewConnectionMade();
+            Console.WriteLine("Number of connections -> " + profile.NumberOfConnections);
+        }
+
+        private static void LoginVerification(Socket client, string user)
+        {
+            if (ClientIsConnected(client))
+                throw new Exception("Error: Client already logged in");
+            if (!ProfileUserNameExists(user))
+                throw new Exception("Error: Profile username nonexistent");
+            if (ProfileIsConnectedToAClient(user))
+                throw new Exception("Error: Profile already logged in");
         }
 
         private static bool ProfileIsConnectedToAClient(string user)
@@ -316,10 +312,9 @@ namespace ServerMessenger
         private static UserProfile ExtractProfileFromAttributes(string user, string password)
         {
            var profile = storedUserProfiles.Find(prof => prof.UserName.Equals(user) && prof.Password.Equals(password));
-            if (profile == null)
-                throw new Exception("Error: Incorrect profile password");
-            else
-                return profile;            
+           if (profile == null)
+               throw new Exception("Error: Incorrect profile password");
+           return profile;            
         }
 
         private static void ValidateClientHeader(ChatProtocol chatMsg)
