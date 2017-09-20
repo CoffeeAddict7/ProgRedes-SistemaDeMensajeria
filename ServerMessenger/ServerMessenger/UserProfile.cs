@@ -63,7 +63,7 @@ namespace ServerMessenger
             if(IsFriendRequestedBy(profile.UserName))
                 throw new Exception("Error: already sent a friend request to (" +this.UserName+ ")");
 
-                PendingFriendRequest.Add(profile);
+            PendingFriendRequest.Add(profile);
         }
         public void AcceptFriendRequest(UserProfile profile)
         {
@@ -87,9 +87,5 @@ namespace ServerMessenger
         {
             return Friends.Count;
         }
-
-
-
     }
-
 }

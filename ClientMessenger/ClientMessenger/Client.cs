@@ -14,6 +14,7 @@ namespace ClientMessenger
         private static NetworkStream netStream;
         private static Byte[] data;
         private static ProtocolManager chatManager;
+        private static bool displayMenu = true;
         static void Main()
         {
             ConnectToServer();
@@ -23,24 +24,17 @@ namespace ClientMessenger
 
         private static void ConnectToServer()
         {
-            InitializeClientConfiguration();
-            netStream = new NetworkStream(tcpClient);
+            BeginInteractionWithServer();
 
-            Console.WriteLine("[00] Logout\n" + "[01] Login\n" + "[02] Register & Login");
-            
             while (loggedIn)
             {
                 try
                 {
                     SendRequestToServer();
-                    ReceiveResponseFromServer();
-                    //Ask for commands
-                    //Send Message
-                    //Receive response
-                    //Process Response
-
+                    ReceiveResponseFromServer();                    
                 }
-                catch (Exception ex) { 
+                catch (Exception ex)
+                {
                     Console.WriteLine(ex.Message);
                 }
             }
@@ -48,38 +42,80 @@ namespace ClientMessenger
             tcpClient.Close();
         }
 
+        private static void BeginInteractionWithServer()
+        {
+            try
+            {
+                InitializeClientConfiguration();
+                netStream = new NetworkStream(tcpClient);
+                ShowMenu();
+            }
+            catch (Exception ex)
+            {
+                ServerConnectionLost();
+            }
+        }
+
+        private static void ServerConnectionLost()
+        {
+            throw new Exception("Server disconnected. Unable to establish connection");
+        }
+
         private static void ReceiveResponseFromServer()
         {
-            data = new Byte[256];
-            String responseData = String.Empty;
-            Int32 bytes = netStream.Read(data, 0, data.Length);
-            responseData = Encoding.ASCII.GetString(data, 0, bytes);
-            ProcessResponse(responseData);
+            try
+            {
+                data = new Byte[256];
+                String responseData = String.Empty;
+                Int32 bytes = netStream.Read(data, 0, data.Length);
+                responseData = Encoding.ASCII.GetString(data, 0, bytes);
+                ProcessResponse(responseData);
+            }
+            catch (Exception ex)
+            {
+                ServerConnectionLost();
+            }
         }
 
         private static void ProcessResponse(String responseData)
         {
             ChatProtocol chatPackage = new ChatProtocol(responseData);
             Console.WriteLine("Server -> " + chatPackage.Payload);
-            DisplayClientMenu(chatPackage);
+            DisplayClientMenu(chatPackage);                    
         }
 
         private static void DisplayClientMenu(ChatProtocol chatPackage)
         {
-            if (chatPackage.GetCommandNumber() != 0)
-                Console.WriteLine("[00] Logout\n" + "[03] Online users\n" + "[04] Friend list\n" + "[05] Send friend request\n");
-            else
-                Console.WriteLine("[00] Logout\n" + "[01] Login\n" + "[02] Register & Login\n");
+            if (chatPackage.GetCommandNumber().Equals(0))
+                displayMenu = true;
+
+            if (displayMenu)            
+                ShowMenu();            
+        }
+        private static void ShowMenu()
+        {
+            Console.WriteLine("[00] Logout\n" +"[01] Login\n" + "[02] Register & Login\n" + "[03] Online users\n" +
+                "[04] Friend list\n" + "[05] Send friend request\n" + "[06] Pending friend requests\n"+ "[07] Reply to friend requests");
+            displayMenu = false;
         }
 
         private static void SendRequestToServer()
         {
-            String message = Console.ReadLine();
-            var messageInfo = ExtractMessageCommandAndContent(message);
-            string command = messageInfo.Item1;
-            string content = messageInfo.Item2;
-            int protocolLen = ChatData.PROTOCOL_FIXED_BYTES + Encoding.ASCII.GetBytes(content).Length;
-            SendPackage(command, content, protocolLen);
+            try
+            {
+                String message = Console.ReadLine();
+                if (message.Equals(String.Empty))
+                    throw new Exception("Error: Can't send empty text");
+                var messageInfo = ExtractMessageCommandAndContent(message);
+                string command = messageInfo.Item1;
+                string content = messageInfo.Item2;
+                int protocolLen = ChatData.PROTOCOL_FIXED_BYTES + Encoding.ASCII.GetBytes(content).Length;
+                SendPackage(command, content, protocolLen);
+            }
+            catch(Exception ex)
+            {
+                ServerConnectionLost();
+            }                                    
         }
 
         private static void SendPackage(string command, string content, int protocolLen)
@@ -113,6 +149,7 @@ namespace ClientMessenger
             Console.WriteLine("Connecting to server...");
             tcpClient.Connect(ChatData.SERVER_IP_END_POINT);
             Console.WriteLine("Connected to server");
+
         }
     }
 }

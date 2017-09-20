@@ -51,11 +51,7 @@ namespace ServerMessenger
                     var thread = new Thread(() => ClientHandler(clientSocket));
                     thread.Start();      
                     //Checkear si ya lo ingrese
-                    activeClientThreads.Add(clientSocket, thread);
-
-                  /*  var serverCommand = Console.ReadLine();
-                    if (serverCommand.ToUpper().Equals(("Execute").ToUpper()))
-                        acceptingConnections = false;*/
+                    activeClientThreads.Add(clientSocket, thread);                    
                 }
                 catch (Exception ex)
                 {
@@ -182,26 +178,63 @@ namespace ServerMessenger
             switch (chatMsg.GetCommandNumber())
             {
                 case 0:
-                    ProcessLogoutRequest(client, chatMsg.Payload);
+                    ProcessLogoutRequest(client, chatMsg);
                     break;
                 case 1:
-                    ProcessLoginRequest(client, chatMsg.Payload);
+                    ProcessLoginRequest(client, chatMsg);
                     break;
                 case 2:
-                    ProcessRegisterRequest(client, chatMsg.Payload);
+                    ProcessRegisterRequest(client, chatMsg);
                     break;
                 case 3:
-                    ProcessConnectedUsersRequest(client, chatMsg.Command);
+                    ProcessConnectedUsersRequest(client, chatMsg);
                     break;
                 case 4:
-                    ProcessFriendListRequest(client, chatMsg.Command);
+                    ProcessFriendListRequest(client, chatMsg);
                     break;
                 case 5:
                     ProcessSendFriendRequest(client, chatMsg);
                     break;
+                case 6:
+                    ProcessPendingFriendRequestsView(client, chatMsg);
+                    break;
                 default:
                     throw new Exception("Error: Unidentified command");
             }
+        }
+
+        private static void ProcessPendingFriendRequestsView(Socket client, ChatProtocol protocol)
+        {
+            ValidatePendingFRViewInformation(client, protocol);
+            string payload = GeneratePendingFriendRequestsPayload(client);
+            ChatProtocol response = chatManager.CreateResponseProtocol(protocol.Command, payload);
+            NotifyClientWithPackage(client, response.Package);
+        }
+
+        private static string GeneratePendingFriendRequestsPayload(Socket client)
+        {
+            string pendingFriendRequests = "";
+            UserProfile profile = authorizedClients.First(cli => ClientsAreEquals(cli.Key, client)).Value;
+            foreach (var prof in profile.PendingFriendRequest)
+            {
+                pendingFriendRequests += prof.UserName;
+                if (!ProfilesAreEquals(profile.PendingFriendRequest.Last(), prof))
+                    pendingFriendRequests += "#";
+            }
+            return pendingFriendRequests;
+        }
+
+        private static bool ProfilesAreEquals(UserProfile profile1, UserProfile profile2)
+        {
+            return profile1.UserName.Equals(profile2.UserName);
+        }
+
+        private static void ValidatePendingFRViewInformation(Socket client, ChatProtocol chatMsg)
+        {
+            if (!ClientIsConnected(client))
+                throw new Exception("Error: To visualize pending requests login first");
+            if (!EmptyProtocolPayload(chatMsg))
+                throw new Exception("Error: Pending friend requests command must be written alone");
         }
 
         private static void ProcessSendFriendRequest(Socket client, ChatProtocol protocol)
@@ -228,10 +261,7 @@ namespace ServerMessenger
 
         private static void ApplyFriendRequest(UserProfile sender, UserProfile reciever)
         {
-            if (!DistinctUserProfiles(sender, reciever))
-                throw new Exception("Error: Can't send friend request to yourself");
-            if (sender.IsFriendWith(reciever.UserName))
-                throw new Exception("Error: Already friends with " + reciever.UserName);
+            ValidateFriendRequestApplication(sender, reciever);
 
             if (sender.IsFriendRequestedBy(reciever.UserName))
             {
@@ -245,45 +275,72 @@ namespace ServerMessenger
             }
         }
 
-        private static void ProcessFriendListRequest(Socket client, string command)
+        private static void ValidateFriendRequestApplication(UserProfile sender, UserProfile reciever)
+        {
+            if (!DistinctUserProfiles(sender, reciever))
+                throw new Exception("Error: Can't send friend request to yourself");
+            if (sender.IsFriendWith(reciever.UserName))
+                throw new Exception("Error: Already friends with " + reciever.UserName);
+        }
+
+        private static void ProcessFriendListRequest(Socket client, ChatProtocol protocol)
+        {
+            ValidateFriendListInformation(client, protocol);
+            string payload = GenerateFriendListPayload(client);
+            ChatProtocol responseProtocol = chatManager.CreateResponseProtocol(protocol.Command, payload);
+            NotifyClientWithPackage(client, responseProtocol.Package);
+        }
+
+        private static void ValidateFriendListInformation(Socket client, ChatProtocol protocol)
         {
             if (!authorizedClients.ContainsKey(client))
                 throw new Exception("Error: To see friend list login first");
-            string payload = GenerateFriendListPayload(client);
-            ChatProtocol responseProtocol = chatManager.CreateResponseProtocol(command, payload);
-            NotifyClientWithPackage(client, responseProtocol.Package);
+            if (!EmptyProtocolPayload(protocol))
+                throw new Exception("Error: Friend list command must be written alone");
+        }
+
+        private static bool EmptyProtocolPayload(ChatProtocol protocol)
+        {
+            return protocol.Payload.Equals(String.Empty);
         }
 
         private static string GenerateFriendListPayload(Socket client)
         {
             string friendlist = "";
-            UserProfile profile;
-            authorizedClients.TryGetValue(client, out profile);
+            UserProfile profile = authorizedClients.First(cli => ClientsAreEquals(cli.Key, client)).Value;
             foreach (var prof in profile.Friends)
             {
-                friendlist += prof.UserName + "_" + prof.FriendsAmmount();
-                if (!profile.Friends.Last().UserName.Equals(prof))
+                friendlist += prof.UserName + "_" + prof.FriendsAmmount();               
+                if (!ProfilesAreEquals(profile.Friends.Last(), prof))
                     friendlist += "#";
             }
             return friendlist;
         }
 
-        private static void ProcessConnectedUsersRequest(Socket client, string command)
+        private static void ProcessConnectedUsersRequest(Socket client, ChatProtocol protocol)
+        {
+            ValidateOnlineUsersInformation(client, protocol);
+            string payload = GenerateConnectedUsersPayload(client);
+            ChatProtocol responseProtocol = chatManager.CreateResponseProtocol(protocol.Command, payload);
+            NotifyClientWithPackage(client, responseProtocol.Package);
+        }
+
+        private static void ValidateOnlineUsersInformation(Socket client, ChatProtocol protocol)
         {
             if (!authorizedClients.ContainsKey(client))
                 throw new Exception("Error: To see online users you must be logged in");
-            string payload = GenerateConnectedUsersPayload(client);
-            ChatProtocol responseProtocol = chatManager.CreateResponseProtocol(command, payload);
-            NotifyClientWithPackage(client, responseProtocol.Package);
+            if (!protocol.Payload.Equals(String.Empty))
+                throw new Exception("Error: Online users command must be written alone");
         }
+
         private static string GenerateConnectedUsersPayload(Socket client)
         {
             string connectedUsers = "";
-            var onlineProf = authorizedClients.Select(d => d.Value).ToList();
             UserProfile clientProf, profile, lastProfile;
-            authorizedClients.TryGetValue(client, out clientProf);
+            var onlineProf = authorizedClients.Select(d => d.Value).ToList();
+            clientProf = authorizedClients.First(cli => ClientsAreEquals(cli.Key, client)).Value;
             lastProfile = onlineProf.Last();
-            for(int index = 0; index < onlineProf.Count; index++)
+            for (int index = 0; index < onlineProf.Count; index++)
             {
                 profile = onlineProf[index];
                 if (DistinctUserProfiles(clientProf, profile))
@@ -306,39 +363,37 @@ namespace ServerMessenger
             return !loggedProf.UserName.Equals(clientProfile.UserName);
         }
 
-        private static void ProcessLogoutRequest(Socket client, string payload)
+        private static void ProcessLogoutRequest(Socket client, ChatProtocol protocol)
         {
-            LogoutVerification(client, payload);
+            LogoutVerification(client, protocol);
             authorizedClients.Remove(client);
-            string resPackage = "RES000011OK";
-            NotifyClientWithPackage(client, resPackage);
+            ChatProtocol response = chatManager.CreateResponseProtocol(protocol.Command, "OK");
+            NotifyClientWithPackage(client, response.Package);
         }
 
-        private static void LogoutVerification(Socket client, string payload)
+        private static void LogoutVerification(Socket client, ChatProtocol protocol)
         {
             if (!ClientIsConnected(client))
                 throw new Exception("Error: Client is not logged in ");
-            if (!payload.Equals(String.Empty))
+            if (!EmptyProtocolPayload(protocol))
                 throw new Exception("Error: Logout command must be written alone");
         }
 
-        private static void ProcessRegisterRequest(Socket client, string payload)
+        private static void ProcessRegisterRequest(Socket client, ChatProtocol protocol)
         {
             string errorMsg = "Wrong register parameters separated by '#'";
-            var profileAccessInfo = ExtractUserProfileAccessInfo(payload, errorMsg);
-            ValidateRegisterInformation(client, profileAccessInfo.Item1, profileAccessInfo.Item2);
+            var profileAccessInfo = ExtractUserProfileAccessInfo(protocol.Payload, errorMsg);
+            ValidateRegisterInformation(client, profileAccessInfo.Item1, profileAccessInfo.Item2, protocol);
         }
 
-        private static void ValidateRegisterInformation(Socket client, string user, string password)
+        private static void ValidateRegisterInformation(Socket client, string user, string password, ChatProtocol protocol)
         {
-            if (!ProfileUserNameExists(user))
-            {
-                CreateProfileAndLogin(client, user, password);
-                string resPackage = "RES020011OK";
-                NotifyClientWithPackage(client, resPackage);
-            }
-            else
+            if (ProfileUserNameExists(user))
                 throw new Exception("Error: Profile username already registered");
+
+            CreateProfileAndLogin(client, user, password);
+            ChatProtocol response = chatManager.CreateResponseProtocol(protocol.Command, "OK");
+            NotifyClientWithPackage(client, response.Package);           
         }
 
         private static void CreateProfileAndLogin(Socket client, string user, string password)
@@ -348,11 +403,11 @@ namespace ServerMessenger
             authorizedClients.Add(client, profile);
         }
 
-        private static void ProcessLoginRequest(Socket client, string payload)
+        private static void ProcessLoginRequest(Socket client, ChatProtocol protocol)
         {
             string errorMsg = "Wrong login parameters separated by '#' ";
-            var profileAccessInfo = ExtractUserProfileAccessInfo(payload, errorMsg);
-            ValidateLoginInformation(client, profileAccessInfo.Item1, profileAccessInfo.Item2);
+            var profileAccessInfo = ExtractUserProfileAccessInfo(protocol.Payload, errorMsg);
+            ValidateLoginInformation(client, profileAccessInfo.Item1, profileAccessInfo.Item2, protocol);
 
         }
         private static Tuple<string,string> ExtractUserProfileAccessInfo(string payload, string errorMsg)
@@ -365,12 +420,12 @@ namespace ServerMessenger
             return new Tuple<string, string>(user, password);
         }
 
-        private static void ValidateLoginInformation(Socket client, string user, string password)
+        private static void ValidateLoginInformation(Socket client, string user, string password, ChatProtocol protocol)
         {
             LoginVerification(client, user);            
             LoginClientAsUserProfile(client, user, password);
-            string resPackage = "RES010011OK";
-            NotifyClientWithPackage(client, resPackage);                               
+            ChatProtocol response = chatManager.CreateResponseProtocol(protocol.Command, "OK");
+            NotifyClientWithPackage(client, response.Package);                               
         }
 
         private static void NotifyClientWithPackage(Socket client, string resPackage)
@@ -382,13 +437,11 @@ namespace ServerMessenger
 
         private static bool ClientIsConnected(Socket client)
         {
-           foreach(var cli in authorizedClients)
-            {
-                var connectedClient = cli.Key;
-                if (connectedClient.RemoteEndPoint.Equals(client.RemoteEndPoint))
-                    return true;
-            }
-            return false;
+            return authorizedClients.Any(cli => ClientsAreEquals(cli.Key, client));
+        }
+        private static bool ClientsAreEquals(Socket client1, Socket client2)
+        {
+            return client1.RemoteEndPoint.Equals(client2.RemoteEndPoint);
         }
 
         private static void LoginClientAsUserProfile(Socket client, string user, string password)
