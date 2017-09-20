@@ -67,9 +67,9 @@ namespace ClientMessenger
         private static void DisplayClientMenu(ChatProtocol chatPackage)
         {
             if (chatPackage.GetCommandNumber() != 0)
-                Console.WriteLine("Display menu");
+                Console.WriteLine("[00] Logout\n" + "[03] Online users\n" + "[04] Friend list\n" + "[05] Send friend request\n");
             else
-                Console.WriteLine("[00] Logout\n" + "[01] Login\n" + "[02] Register & Login");
+                Console.WriteLine("[00] Logout\n" + "[01] Login\n" + "[02] Register & Login\n");
         }
 
         private static void SendRequestToServer()
@@ -88,7 +88,6 @@ namespace ClientMessenger
             string protocolMsg = ChatData.REQUEST_HEADER + command + protocolFixedSize + content;
             data = Encoding.ASCII.GetBytes(protocolMsg);
             netStream.Write(data, 0, data.Length);
-          //  Console.WriteLine("Sent: {0}", protocolMsg);
         }
 
         private static Tuple<string,string> ExtractMessageCommandAndContent(String message)

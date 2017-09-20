@@ -45,15 +45,42 @@ namespace ServerMessenger
             this.NumberOfConnections++;
         }
 
-        public bool IsFriendWith(string userName)
+        public bool IsFriendWith(string username)
         {
-            return this.Friends.Any(friend => friend.UserName.Equals(UserName));
+            return this.Friends.Any(friend => friend.UserName.Equals(username));
+        }
+
+        public bool IsFriendRequestedBy(string username)
+        {
+            return this.PendingFriendRequest.Any(pending => pending.UserName.Equals(username));
         }
 
         public void AddFriendRequest(UserProfile profile)
         {
-            //VALIDATIONS
-            this.PendingFriendRequest.Add(profile);
+            if (IsFriendWith(profile.UserName))
+                throw new Exception("Error: ("+ profile.UserName + ") is already in your friend list");
+
+            if(IsFriendRequestedBy(profile.UserName))
+                throw new Exception("Error: already sent a friend request to (" +this.UserName+ ")");
+
+                PendingFriendRequest.Add(profile);
+        }
+        public void AcceptFriendRequest(UserProfile profile)
+        {
+            if (IsFriendWith(profile.UserName))
+                throw new Exception("Error: (" + profile.UserName + ") is already in your friend list");
+
+            if (!IsFriendRequestedBy(profile.UserName))
+                throw new Exception("Error: ("+profile.UserName+") not in your friend requests");
+
+            var pendingFriend = PendingFriendRequest.First(prof => prof.UserName.Equals(profile.UserName));
+            AddFriendAndRemoveFriendRequest(pendingFriend);
+        }
+
+        private void AddFriendAndRemoveFriendRequest(UserProfile pendingFriend)
+        {
+            Friends.Add(pendingFriend);
+            PendingFriendRequest.Remove(pendingFriend);
         }
 
         public int FriendsAmmount()

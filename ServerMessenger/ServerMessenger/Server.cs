@@ -13,7 +13,7 @@ namespace ServerMessenger
     {
         private static bool acceptingConnections = true;
 
-        private static Dictionary<Socket, Thread> activeClientThreads;
+        private static Dictionary<Socket, Thread> activeClientThreads; //Close threads and sockets if server makes shutdown command
         private static Socket tcpServer;
         private static ProtocolManager chatManager;
         private static List<UserProfile> storedUserProfiles;
@@ -35,14 +35,15 @@ namespace ServerMessenger
         private static void LoadUserProfiles()
         {
             UserProfile luis = new UserProfile("LUIS", "PEPE");
-            storedUserProfiles.Add(luis);           
+            UserProfile jose = new UserProfile("JOSE", "PEPE");
+            storedUserProfiles.Add(luis);
+            storedUserProfiles.Add(jose);
         }
 
         private static void StartServer()
         {
             InitializeServerConfiguration();
-
-            while (acceptingConnections) //Cambiar
+            while (acceptingConnections)
             {
                 try
                 {
@@ -51,6 +52,10 @@ namespace ServerMessenger
                     thread.Start();      
                     //Checkear si ya lo ingrese
                     activeClientThreads.Add(clientSocket, thread);
+
+                  /*  var serverCommand = Console.ReadLine();
+                    if (serverCommand.ToUpper().Equals(("Execute").ToUpper()))
+                        acceptingConnections = false;*/
                 }
                 catch (Exception ex)
                 {
@@ -186,19 +191,89 @@ namespace ServerMessenger
                     ProcessRegisterRequest(client, chatMsg.Payload);
                     break;
                 case 3:
-                    ProcessConnectedUsersRequest(client, chatMsg);
+                    ProcessConnectedUsersRequest(client, chatMsg.Command);
+                    break;
+                case 4:
+                    ProcessFriendListRequest(client, chatMsg.Command);
+                    break;
+                case 5:
+                    ProcessSendFriendRequest(client, chatMsg);
                     break;
                 default:
                     throw new Exception("Error: Unidentified command");
             }
         }
 
-        private static void ProcessConnectedUsersRequest(Socket client, ChatProtocol protocol)
+        private static void ProcessSendFriendRequest(Socket client, ChatProtocol protocol)
+        {
+            UserProfile sender, reciever;
+            string userNameRequest = protocol.Payload;
+            ValidateFriendRequestInformation(client, userNameRequest);
+
+            authorizedClients.TryGetValue(client, out sender);
+            reciever = storedUserProfiles.First(prof => prof.UserName.Equals(userNameRequest));
+            ApplyFriendRequest(sender, reciever);
+
+            ChatProtocol responseProtocol = chatManager.CreateResponseProtocol(protocol.Command, "OK");
+            NotifyClientWithPackage(client, responseProtocol.Package);
+        }
+
+        private static void ValidateFriendRequestInformation(Socket client, string userNameRequest)
+        {
+            if (!authorizedClients.ContainsKey(client))
+                throw new Exception("Error: To send friend request login first");
+            if (!storedUserProfiles.Exists(us => us.UserName.Equals(userNameRequest)))
+                throw new Exception("Error: User profile not registered");
+        }
+
+        private static void ApplyFriendRequest(UserProfile sender, UserProfile reciever)
+        {
+            if (!DistinctUserProfiles(sender, reciever))
+                throw new Exception("Error: Can't send friend request to yourself");
+            if (sender.IsFriendWith(reciever.UserName))
+                throw new Exception("Error: Already friends with " + reciever.UserName);
+
+            if (sender.IsFriendRequestedBy(reciever.UserName))
+            {
+                sender.AcceptFriendRequest(reciever);
+                reciever.AddFriendRequest(sender);
+                reciever.AcceptFriendRequest(sender);
+            }
+            else
+            {
+                reciever.AddFriendRequest(sender);
+            }
+        }
+
+        private static void ProcessFriendListRequest(Socket client, string command)
+        {
+            if (!authorizedClients.ContainsKey(client))
+                throw new Exception("Error: To see friend list login first");
+            string payload = GenerateFriendListPayload(client);
+            ChatProtocol responseProtocol = chatManager.CreateResponseProtocol(command, payload);
+            NotifyClientWithPackage(client, responseProtocol.Package);
+        }
+
+        private static string GenerateFriendListPayload(Socket client)
+        {
+            string friendlist = "";
+            UserProfile profile;
+            authorizedClients.TryGetValue(client, out profile);
+            foreach (var prof in profile.Friends)
+            {
+                friendlist += prof.UserName + "_" + prof.FriendsAmmount();
+                if (!profile.Friends.Last().UserName.Equals(prof))
+                    friendlist += "#";
+            }
+            return friendlist;
+        }
+
+        private static void ProcessConnectedUsersRequest(Socket client, string command)
         {
             if (!authorizedClients.ContainsKey(client))
                 throw new Exception("Error: To see online users you must be logged in");
             string payload = GenerateConnectedUsersPayload(client);
-            ChatProtocol responseProtocol = chatManager.CreateResponseProtocol(protocol.Command, payload);
+            ChatProtocol responseProtocol = chatManager.CreateResponseProtocol(command, payload);
             NotifyClientWithPackage(client, responseProtocol.Package);
         }
         private static string GenerateConnectedUsersPayload(Socket client)
