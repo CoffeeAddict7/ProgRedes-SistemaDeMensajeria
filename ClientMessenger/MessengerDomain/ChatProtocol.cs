@@ -7,28 +7,44 @@ namespace ServerMessenger
 {
     public class ChatProtocol
     {
-        private static int HEADER_INDEX = 0;
-        private static int CMD_INDEX = 3;
-        private static int PAYLOAD_INDEX = 9;    
+        private static int HEADER = 3;
+        private static int CMD = 2;
+      //  private static int PACKAGE_SIZE = 4;    
 
         public string Header { get; set; }
-        public int Command { get; set; }
+        public string Command { get; set; }
         public string Payload { get; set; }
 
-        public ChatProtocol(string package, int payloadLength)
+        public ChatProtocol(string package)
         {
-            var packageChars = package.ToCharArray();
-            string header = new String(packageChars, HEADER_INDEX, 3);
-            string cmd = new String(packageChars, CMD_INDEX, 2);
-            string payload = new String(packageChars, PAYLOAD_INDEX, payloadLength);
+            string header, cmd, payload;
+            ExtractProtocolParameters(package, out header, out cmd, out payload);
             ValidateProtocolFields(header, cmd);
             SetProtocolProperties(header, cmd, payload);
         }
 
-        private void SetProtocolProperties(string header, string cmd, string payload)
+        private static void ExtractProtocolParameters(string package, out string header, out string cmd, out string payload)
         {
-            int command;
-            int.TryParse(cmd, out command);
+            try {
+                header = new String(package.Take(HEADER).ToArray());
+                cmd = new String(package.Skip(HEADER).Take(CMD).ToArray());
+                int payloadBytes = package.Length - ChatData.PROTOCOL_FIXED_BYTES;
+                payload = new String(package.Skip(ChatData.PROTOCOL_FIXED_BYTES).Take(payloadBytes).ToArray());
+            }
+            catch (Exception) {
+                throw new Exception("Error: Incorrect protocol format");
+            }           
+        }
+
+        public int GetCommandNumber()
+        {
+            int intCmd;
+            int.TryParse(this.Command, out intCmd);
+            return intCmd;
+        }
+
+        private void SetProtocolProperties(string header, string command, string payload)
+        {
             this.Header = header;
             this.Command = command;
             this.Payload = payload;
@@ -52,5 +68,6 @@ namespace ServerMessenger
             ICollection<string> acceptedHeaders = new List<String> { ChatData.REQUEST_HEADER, ChatData.RESPONSE_HEADER };
             return acceptedHeaders.Any(h => h.Equals(header.ToUpper()));
         }
+
     }
 }

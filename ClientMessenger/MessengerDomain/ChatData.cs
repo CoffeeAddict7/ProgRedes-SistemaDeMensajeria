@@ -10,5 +10,6 @@ namespace MessengerDomain
         public static string REQUEST_HEADER = "REQ";
         public static string RESPONSE_HEADER = "RES";
         public static int PROFILE_ATTRIBUTES_MIN_LENGTH = 4;
+   
     }
 }

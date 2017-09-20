@@ -11,11 +11,11 @@ namespace ServerMessenger
 {
     public class Server
     {
-        private static Boolean acceptingConnections = true;
+        private static bool acceptingConnections = true;
 
         private static Dictionary<Socket, Thread> activeClientThreads;
         private static Socket tcpServer;
-
+        private static ProtocolManager chatManager;
         private static List<UserProfile> storedUserProfiles;
         private static Dictionary<Socket,UserProfile> authorizedClients;
 
@@ -44,20 +44,26 @@ namespace ServerMessenger
 
             while (acceptingConnections) //Cambiar
             {
-                var clientSocket = tcpServer.Accept();
-                var thread = new Thread(() => ClientHandler(clientSocket));
-                thread.Start();
-
-                //Checkear si ya lo ingrese
-                activeClientThreads.Add(clientSocket, thread);
+                try
+                {
+                    var clientSocket = tcpServer.Accept();
+                    var thread = new Thread(() => ClientHandler(clientSocket));
+                    thread.Start();      
+                    //Checkear si ya lo ingrese
+                    activeClientThreads.Add(clientSocket, thread);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
             }
-
             CloseServerConnection();
         }
 
         private static void InitializeServerConfiguration()
         {
             activeClientThreads = new Dictionary<Socket, Thread>();
+            chatManager = new ProtocolManager();
             tcpServer = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             tcpServer.Bind(ChatData.SERVER_IP_END_POINT);
             tcpServer.Listen(ChatData.MAX_ACTIVE_CONN);
@@ -68,8 +74,8 @@ namespace ServerMessenger
         {
             foreach (KeyValuePair<Socket, Thread> entry in activeClientThreads)
             {
-                entry.Key.Shutdown(SocketShutdown.Both);
-                entry.Key.Close();
+                EndConnection(entry.Key);
+                //CERRAR THREAD y borrarlos de los dos diccionarios
             }
             tcpServer.Close();
         }
@@ -116,7 +122,6 @@ namespace ServerMessenger
                 {
                     EndConnection(client);
                 }
-
             }
         }
 
@@ -125,62 +130,123 @@ namespace ServerMessenger
             NetworkStream stream = new NetworkStream(client);
             using (var reader = new StreamReader(stream))
             {
-                var sb = new StringBuilder();
-                int packageLength = ReadFixedBytesFromPackage(client, reader, ref sb);
-                ReadPayloadBytesFromPackage(client, reader, ref sb, packageLength);
-
-                var payloadLength = packageLength - ChatData.PROTOCOL_FIXED_BYTES;
-                var package = sb.ToString();
-
-                try { 
-                    ChatProtocol chatMsg = new ChatProtocol(package, payloadLength);
-                    ProcessMessage(client, chatMsg);
-                }catch(Exception ex)
+                try
                 {
-                    //Show in console
+                    while (true)
+                    {
+                        var sb = new StringBuilder();
+                        int packageLength = ReadFixedBytesFromPackage(client, reader, ref sb);
+                        ReadPayloadBytesFromPackage(client, reader, ref sb, packageLength);
+                        var package = sb.ToString();
+                        ChatProtocol chatMsg = new ChatProtocol(package);
+                        ProcessMessage(client, chatMsg);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    authorizedClients.Remove(client);
+                    activeClientThreads.Remove(client);
+                    Console.WriteLine("Client " + client.RemoteEndPoint + " disconnected!");
                 }
             }
-            stream.Close();//
+            stream.Close();
+            EndConnection(client);
         }
 
         private static void ProcessMessage(Socket client, ChatProtocol chatMsg)
         {
-            Console.WriteLine(chatMsg.Payload);
-            ValidateClientHeader(chatMsg);
             try
             {
+                ValidateClientHeader(chatMsg);
                 ProcessByProtocolCommmand(client, chatMsg);
+                Console.WriteLine("Response to: [" + client.RemoteEndPoint + "] of CMD [" + chatMsg.Command + "]");
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message); //Devolver mensaje al cliente
+                int packageSize = ChatData.PROTOCOL_FIXED_BYTES + ex.Message.Length;
+                string errorMsg = ChatData.RESPONSE_HEADER + chatMsg.Command + chatManager.BuildProtocolHeaderLength(packageSize) + ex.Message;
+                NotifyClientWithPackage(client, errorMsg);
+                Console.WriteLine("Response to: [" + client.RemoteEndPoint + "] of CMD [" + chatMsg.Command + "] With ERROR");
             }
             
         }
 
         private static void ProcessByProtocolCommmand(Socket client, ChatProtocol chatMsg)
         {
-            switch (chatMsg.Command)
+            Console.WriteLine("Receive: CMD ["+ chatMsg.Command + "] Requested by ["+ client.RemoteEndPoint+ "]");
+            switch (chatMsg.GetCommandNumber())
             {
+                case 0:
+                    ProcessLogoutRequest(client, chatMsg.Payload);
+                    break;
                 case 1:
-                    Console.WriteLine("Loggin request by " + client.RemoteEndPoint);
                     ProcessLoginRequest(client, chatMsg.Payload);
+                    break;
+                case 2:
+                    ProcessRegisterRequest(client, chatMsg.Payload);
                     break;
                 default:
                     throw new Exception("Error: Unidentified command");
             }
         }
 
+        private static void ProcessLogoutRequest(Socket client, string payload)
+        {
+            LogoutVerification(client, payload);
+            authorizedClients.Remove(client);
+            string resPackage = "RES000011OK";
+            NotifyClientWithPackage(client, resPackage);
+        }
+
+        private static void LogoutVerification(Socket client, string payload)
+        {
+            if (!ClientIsConnected(client))
+                throw new Exception("Error: Client is not logged in ");
+            if (!payload.Equals(String.Empty))
+                throw new Exception("Error: Logout command must be written alone");
+        }
+
+        private static void ProcessRegisterRequest(Socket client, string payload)
+        {
+            string errorMsg = "Wrong register parameters separated by '#'";
+            var profileAccessInfo = ExtractUserProfileAccessInfo(payload, errorMsg);
+            ValidateRegisterInformation(client, profileAccessInfo.Item1, profileAccessInfo.Item2);
+        }
+
+        private static void ValidateRegisterInformation(Socket client, string user, string password)
+        {
+            if (!ProfileUserNameExists(user))
+            {
+                CreateProfileAndLogin(client, user, password);
+                string resPackage = "RES020011OK";
+                NotifyClientWithPackage(client, resPackage);
+            }
+            else
+                throw new Exception("Error: Profile username already registered");
+        }
+
+        private static void CreateProfileAndLogin(Socket client, string user, string password)
+        {
+            UserProfile profile = new UserProfile(user, password);
+            storedUserProfiles.Add(profile);
+            authorizedClients.Add(client, profile);
+        }
+
         private static void ProcessLoginRequest(Socket client, string payload)
+        {
+            string errorMsg = "Wrong login parameters separated by '#' ";
+            var profileAccessInfo = ExtractUserProfileAccessInfo(payload, errorMsg);
+            ValidateLoginInformation(client, profileAccessInfo.Item1, profileAccessInfo.Item2);
+
+        }
+        private static Tuple<string,string> ExtractUserProfileAccessInfo(string payload, string errorMsg)
         {
             var userProfileAttributes = payload.Split('#');
             if (userProfileAttributes.Length != 2)
-                throw new Exception("Wrong login parameters separated by '#' ");
-
+                throw new Exception(errorMsg);
             string user = userProfileAttributes[0];
             string password = userProfileAttributes[1];
-            ValidateLoginInformation(client, user, password);
-
+            return new Tuple<string, string>(user, password);
         }
 
         private static void ValidateLoginInformation(Socket client, string user, string password)
@@ -188,8 +254,18 @@ namespace ServerMessenger
             if (!ClientIsConnected(client))
             {
                 LoginClientAsUserProfile(client, user, password);
-                Console.WriteLine("Success");//Response message with menu
+                string resPackage = "RES010011OK";
+                NotifyClientWithPackage(client, resPackage);
             }
+            else
+                throw new Exception("Error: Client already logged in");                           
+        }
+
+        private static void NotifyClientWithPackage(Socket client, string resPackage)
+        {            
+            Byte[] responseBuffer = Encoding.ASCII.GetBytes(resPackage);
+            NetworkStream stream = new NetworkStream(client);
+            stream.Write(responseBuffer, 0, responseBuffer.Length);
         }
 
         private static bool ClientIsConnected(Socket client)
@@ -213,26 +289,13 @@ namespace ServerMessenger
                     authorizedClients.Add(client, profile);
                     profile.NewConnectionMade();
                     Console.WriteLine("Number of connections -> " + profile.NumberOfConnections);
-                    //Responder al cliente menu
                 }
                 else
-                {
-                    throw new Exception("Error: Profile already logged in");
-                }
+                    throw new Exception("Error: Profile already logged in");                
             }
-            else
-            {
-                CreateProfileAndLogin(client, user, password);
-            }
+            else            
+                throw new Exception("Error: Profile username nonexistent");           
         }
-
-        private static void CreateProfileAndLogin(Socket client, string user, string password)
-        {
-            UserProfile profile = new UserProfile(user, password);
-            storedUserProfiles.Add(profile);
-            authorizedClients.Add(client,profile);
-        }
-
 
         private static bool ProfileIsConnectedToAClient(string user)
         {
@@ -262,7 +325,7 @@ namespace ServerMessenger
         private static void ValidateClientHeader(ChatProtocol chatMsg)
         {
             if (!chatMsg.Header.Equals(ChatData.REQUEST_HEADER))
-                Console.WriteLine("Wrong client header");
+                throw new Exception("Error: Wrong client header");
         }
 
         private static void EndConnection(Socket client)
