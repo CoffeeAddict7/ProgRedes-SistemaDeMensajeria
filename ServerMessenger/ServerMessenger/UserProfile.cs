@@ -49,6 +49,10 @@ namespace ServerMessenger
         {
             return this.Friends.Any(friend => friend.UserName.Equals(username));
         }
+        public void AddFriend(UserProfile profile)
+        {
+            this.Friends.Add(profile);
+        }
 
         public bool IsFriendRequestedBy(string username)
         {
@@ -65,7 +69,7 @@ namespace ServerMessenger
 
             PendingFriendRequest.Add(profile);
         }
-        public void AcceptFriendRequest(UserProfile profile)
+        public void ReplyFriendRequest(UserProfile profile, bool accept)
         {
             if (IsFriendWith(profile.UserName))
                 throw new Exception("Error: (" + profile.UserName + ") is already in your friend list");
@@ -73,8 +77,15 @@ namespace ServerMessenger
             if (!IsFriendRequestedBy(profile.UserName))
                 throw new Exception("Error: ("+profile.UserName+") not in your friend requests");
 
-            var pendingFriend = PendingFriendRequest.First(prof => prof.UserName.Equals(profile.UserName));
-            AddFriendAndRemoveFriendRequest(pendingFriend);
+            if (accept)            
+                AddFriendAndRemoveFriendRequest(profile);            
+            else
+                PendingFriendRequest.Remove(profile);
+        }
+
+        public void AcceptFriendRequest(UserProfile profile)
+        {
+            ReplyFriendRequest(profile, true);
         }
 
         private void AddFriendAndRemoveFriendRequest(UserProfile pendingFriend)

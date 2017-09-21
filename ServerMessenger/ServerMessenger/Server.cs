@@ -198,9 +198,56 @@ namespace ServerMessenger
                 case 6:
                     ProcessPendingFriendRequestsView(client, chatMsg);
                     break;
+                case 7:
+                    ProcessReplyToFriendRequest(client, chatMsg);
+                    break;
                 default:
                     throw new Exception("Error: Unidentified command");
             }
+        }
+
+        private static void ProcessReplyToFriendRequest(Socket client, ChatProtocol protocol)
+        {
+            Tuple<string, string> clientMessage = ExtractFriendRequestReply(protocol.Payload);
+            string username = clientMessage.Item1;
+            string reply = clientMessage.Item2;
+            ValidateFriendRequestReplyInformation(client, username, reply);
+
+            UserProfile clientProfile = authorizedClients.First(authCli => ClientsAreEquals(authCli.Key, client)).Value;
+            UserProfile profileToReply = storedUserProfiles.First(prof => prof.UserName.Equals(username));
+
+            bool accept = (MessageIsFriendRequestReply(reply, ChatData.FRIEND_REQUEST_YES_REPLY)) ? true : false;
+            clientProfile.ReplyFriendRequest(profileToReply, accept);
+            if (accept)
+                profileToReply.AddFriend(clientProfile);
+            ChatProtocol response = chatManager.CreateResponseProtocol(protocol.Command, "OK");
+            NotifyClientWithPackage(client, response.Package);
+        }
+
+        private static void ValidateFriendRequestReplyInformation(Socket client, string username, string reply)
+        {
+            if (!ClientIsConnected(client))
+                throw new Exception("Error: To reply to a friend request you must be logged in");
+            if (!ProfileUserNameExists(username))
+                throw new Exception("Error: Profile username doesn't exists");
+            if (!ChatData.acceptedFriendRequestReply.Any(rep => MessageIsFriendRequestReply(rep, reply)))
+                throw new Exception("Error: Invalid friend request reply");
+        }
+
+        private static bool MessageIsFriendRequestReply(string s1, string s2)
+        {
+            return s1.ToUpper().Equals(s2.ToUpper());
+        }
+
+        private static Tuple<string, string> ExtractFriendRequestReply(string payload)
+        {
+            var clientMessage = payload.Split('#');
+            if (clientMessage.Length != 2)
+                throw new Exception("Error: Wrong friend request reply format");
+
+            string user = clientMessage[0];
+            string reply = clientMessage[1];
+            return new Tuple<string, string>(user, reply);
         }
 
         private static void ProcessPendingFriendRequestsView(Socket client, ChatProtocol protocol)

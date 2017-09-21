@@ -1,4 +1,6 @@
-﻿using System.Net;
+﻿using System;
+using System.Collections.Generic;
+using System.Net;
 
 namespace MessengerDomain
 {
@@ -10,6 +12,8 @@ namespace MessengerDomain
         public static string REQUEST_HEADER = "REQ";
         public static string RESPONSE_HEADER = "RES";
         public static int PROFILE_ATTRIBUTES_MIN_LENGTH = 4;
-   
+        public static string FRIEND_REQUEST_YES_REPLY = "YES";
+        public static string FRIEND_REQUEST_NO_REPLY = "NO";
+        public static ICollection<string> acceptedFriendRequestReply = new List<String> { FRIEND_REQUEST_YES_REPLY, FRIEND_REQUEST_NO_REPLY};
     }
 }
