@@ -11,6 +11,8 @@ namespace MessengerDomain
         public static int PROTOCOL_FIXED_BYTES = 9;
         public static string REQUEST_HEADER = "REQ";
         public static string RESPONSE_HEADER = "RES";
+        public static string RESPONSE_OK = "OK";
+        public static string RESPONSE_ERROR = "ERROR";
         public static int PROFILE_ATTRIBUTES_MIN_LENGTH = 4;
         public static string FRIEND_REQUEST_YES_REPLY = "YES";
         public static string FRIEND_REQUEST_NO_REPLY = "NO";

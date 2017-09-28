@@ -9,7 +9,7 @@ namespace MessengerDomain
 {
     public class ProtocolManager
     {
-        public string BuildProtocolHeaderLength(int size)
+        private string BuildProtocolHeaderLength(int size)
         {
             var sizeInStr = size.ToString();
             while (sizeInStr.Length != 4)
@@ -20,25 +20,52 @@ namespace MessengerDomain
             return sizeInStr;
         }
 
-        public int ExtractProtocolHeaderLength(string size)
+        public ChatProtocol CreateRequestProtocolFromInput(String message)
         {
-            int length = 0;
-            if (!Int32.TryParse(size, out length))
-                throw new Exception("Error: Protocol header length non numeric");
-               
-            return length;
+            int cmd;
+            string command = "", payload = "";
+            ValidateProtocolPayloadInput(message);
+
+            command = new String(message.Take(2).ToArray());
+            payload = new String(message.Skip(2).Take(message.Length - 2).ToArray());
+            if (!Int32.TryParse(command, out cmd))
+                throw new Exception("Error: Server request must be preceded by a numeric command");
+
+            return CreateRequestProtocol(command, payload);
         }
 
-        public ChatProtocol CreateResponseProtocol(string cmd, string payload)
+        private static void ValidateProtocolPayloadInput(string message)
         {
-            string package = BuildPackage(ChatData.RESPONSE_HEADER, cmd, payload);
+            if (message.Equals(String.Empty))
+                throw new Exception("Error: Can't send empty text");
+            if (message.Length < 2)
+                throw new Exception("Error: Invalid command");
+        }
+        public ChatProtocol CreateResponseOkProtocol(string cmd)
+        {
+            return CreateResponseOkProtocol(cmd, String.Empty);
+        }
+        public ChatProtocol CreateResponseOkProtocol(string cmd, string payload)
+        {
+            string package = BuildPackage(ChatData.RESPONSE_HEADER, cmd, ChatData.RESPONSE_OK + "$" + payload);
+            return new ChatProtocol(package);
+        }
+        public ChatProtocol CreateResponseErrorProtocol(string cmd, string payload)
+        {
+            string package = BuildPackage(ChatData.RESPONSE_HEADER, cmd, ChatData.RESPONSE_ERROR + "$" + payload);
+            return new ChatProtocol(package);
+        }
+
+        private ChatProtocol CreateRequestProtocol(string cmd, string payload)
+        {
+            string package = BuildPackage(ChatData.REQUEST_HEADER, cmd, payload);
             return new ChatProtocol(package);
         }
 
         private string BuildPackage(string header, string cmd, string payload)
         {
             string packageSize = BuildProtocolHeaderLength(ChatData.PROTOCOL_FIXED_BYTES + payload.Length);
-            return ChatData.RESPONSE_HEADER + cmd + packageSize + payload;
+            return header + cmd + packageSize + payload;
         }
         private string NumericCmdToFixedCommand(int cmd)
         {

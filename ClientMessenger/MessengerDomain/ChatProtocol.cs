@@ -9,7 +9,6 @@ namespace ServerMessenger
     {
         private static int HEADER = 3;
         private static int CMD = 2;
-      //  private static int PACKAGE_SIZE = 4;    
 
         public string Header { get; set; }
         public string Command { get; set; }

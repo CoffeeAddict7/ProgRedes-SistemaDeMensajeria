@@ -11,8 +11,7 @@ namespace ServerMessenger
 {
     public class Server
     {
-        private static bool acceptingConnections = true;
-
+        private static bool acceptingConnections;
         private static Dictionary<Socket, Thread> activeClientThreads; //Close threads and sockets if server makes shutdown command
         private static Socket tcpServer;
         private static ProtocolManager chatManager;
@@ -41,44 +40,56 @@ namespace ServerMessenger
         }
 
         private static void StartServer()
-        {
+        {        
             InitializeServerConfiguration();
-            while (acceptingConnections)
-            {
+            
+            while (acceptingConnections) { 
                 try
                 {
                     var clientSocket = tcpServer.Accept();
                     var thread = new Thread(() => ClientHandler(clientSocket));
-                    thread.Start();      
-                    //Checkear si ya lo ingrese
-                    activeClientThreads.Add(clientSocket, thread);                    
+                    thread.Start();
+                    activeClientThreads.Add(clientSocket, thread);
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex.Message);
                 }
             }
-            CloseServerConnection();
+            tcpServer.Close();
+            Console.Read();
         }
 
         private static void InitializeServerConfiguration()
         {
-            activeClientThreads = new Dictionary<Socket, Thread>();
-            chatManager = new ProtocolManager();
-            tcpServer = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            tcpServer.Bind(ChatData.SERVER_IP_END_POINT);
-            tcpServer.Listen(ChatData.MAX_ACTIVE_CONN);
-            Console.WriteLine("Start waiting for clients");
+            try
+            {
+                acceptingConnections = true;
+                activeClientThreads = new Dictionary<Socket, Thread>();
+                chatManager = new ProtocolManager();
+                tcpServer = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                tcpServer.Bind(ChatData.SERVER_IP_END_POINT);
+                tcpServer.Listen(ChatData.MAX_ACTIVE_CONN);
+                Console.WriteLine("Start waiting for clients");
+            }
+            catch (Exception)
+            {
+                acceptingConnections = false;
+                Console.WriteLine("Error -> Instance of the server already running"); Console.Read();
+            }
         }
 
         private static void CloseServerConnection()
         {
+            acceptingConnections = false;
             foreach (KeyValuePair<Socket, Thread> entry in activeClientThreads)
             {
+                ChatProtocol closeConnectionResponse = chatManager.CreateResponseOkProtocol("99");
+                NotifyClientWithPackage(entry.Key, closeConnectionResponse.Package);
+                authorizedClients.Remove(entry.Key);
                 EndConnection(entry.Key);
-                //CERRAR THREAD y borrarlos de los dos diccionarios
             }
-            tcpServer.Close();
+            activeClientThreads = new Dictionary<Socket, Thread>();
         }
 
         private static int ReadFixedBytesFromPackage(Socket client ,StreamReader reader, ref StringBuilder sb)
@@ -129,29 +140,38 @@ namespace ServerMessenger
         private static void ClientHandler(Socket client)
         {
             NetworkStream stream = new NetworkStream(client);
-            using (var reader = new StreamReader(stream))
+            var reader = new StreamReader(stream);
+            try
             {
-                try
+                while (acceptingConnections && !ServerExecuteCommand())
                 {
-                    while (true)
-                    {
-                        var sb = new StringBuilder();
-                        int packageLength = ReadFixedBytesFromPackage(client, reader, ref sb);
-                        ReadPayloadBytesFromPackage(client, reader, ref sb, packageLength);
-                        var package = sb.ToString();
-                        ChatProtocol chatMsg = new ChatProtocol(package);
-                        ProcessMessage(client, chatMsg);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    authorizedClients.Remove(client);
-                    activeClientThreads.Remove(client);
-                    Console.WriteLine("Client " + client.RemoteEndPoint + " disconnected!");
+                    var sb = new StringBuilder();
+                    int packageLength = ReadFixedBytesFromPackage(client, reader, ref sb);
+                    ReadPayloadBytesFromPackage(client, reader, ref sb, packageLength);
+                    var package = sb.ToString();
+                    ChatProtocol chatMsg = new ChatProtocol(package);
+                    ProcessMessage(client, chatMsg);
                 }
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Client disconnected!");
+                authorizedClients.Remove(client);
+                activeClientThreads.Remove(client);
+            }
             stream.Close();
-            EndConnection(client);
+            CloseServerConnection();
+        }
+
+        private static bool ServerExecuteCommand()
+        {
+            if(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.X)
+            {
+                Console.WriteLine("X Pressed");
+                acceptingConnections = false;
+                return true;
+            }
+            return false;
         }
 
         private static void ProcessMessage(Socket client, ChatProtocol chatMsg)
@@ -164,12 +184,10 @@ namespace ServerMessenger
             }
             catch (Exception ex)
             {
-                int packageSize = ChatData.PROTOCOL_FIXED_BYTES + ex.Message.Length;
-                string errorMsg = ChatData.RESPONSE_HEADER + chatMsg.Command + chatManager.BuildProtocolHeaderLength(packageSize) + ex.Message;
-                NotifyClientWithPackage(client, errorMsg);
+                ChatProtocol response = chatManager.CreateResponseErrorProtocol(chatMsg.Command, ex.Message);
+                NotifyClientWithPackage(client, response.Package);
                 Console.WriteLine("Response to: [" + client.RemoteEndPoint + "] of CMD [" + chatMsg.Command + "] With ERROR");
-            }
-            
+            }            
         }
 
         private static void ProcessByProtocolCommmand(Socket client, ChatProtocol chatMsg)
@@ -220,7 +238,7 @@ namespace ServerMessenger
             clientProfile.ReplyFriendRequest(profileToReply, accept);
             if (accept)
                 profileToReply.AddFriend(clientProfile);
-            ChatProtocol response = chatManager.CreateResponseProtocol(protocol.Command, "OK");
+            ChatProtocol response = chatManager.CreateResponseOkProtocol(protocol.Command);
             NotifyClientWithPackage(client, response.Package);
         }
 
@@ -254,7 +272,7 @@ namespace ServerMessenger
         {
             ValidatePendingFRViewInformation(client, protocol);
             string payload = GeneratePendingFriendRequestsPayload(client);
-            ChatProtocol response = chatManager.CreateResponseProtocol(protocol.Command, payload);
+            ChatProtocol response = chatManager.CreateResponseOkProtocol(protocol.Command, payload);
             NotifyClientWithPackage(client, response.Package);
         }
 
@@ -294,7 +312,7 @@ namespace ServerMessenger
             reciever = storedUserProfiles.First(prof => prof.UserName.Equals(userNameRequest));
             ApplyFriendRequest(sender, reciever);
 
-            ChatProtocol responseProtocol = chatManager.CreateResponseProtocol(protocol.Command, "OK");
+            ChatProtocol responseProtocol = chatManager.CreateResponseOkProtocol(protocol.Command);
             NotifyClientWithPackage(client, responseProtocol.Package);
         }
 
@@ -334,7 +352,7 @@ namespace ServerMessenger
         {
             ValidateFriendListInformation(client, protocol);
             string payload = GenerateFriendListPayload(client);
-            ChatProtocol responseProtocol = chatManager.CreateResponseProtocol(protocol.Command, payload);
+            ChatProtocol responseProtocol = chatManager.CreateResponseOkProtocol(protocol.Command, payload);
             NotifyClientWithPackage(client, responseProtocol.Package);
         }
 
@@ -368,7 +386,7 @@ namespace ServerMessenger
         {
             ValidateOnlineUsersInformation(client, protocol);
             string payload = GenerateConnectedUsersPayload(client);
-            ChatProtocol responseProtocol = chatManager.CreateResponseProtocol(protocol.Command, payload);
+            ChatProtocol responseProtocol = chatManager.CreateResponseOkProtocol(protocol.Command, payload);
             NotifyClientWithPackage(client, responseProtocol.Package);
         }
 
@@ -414,20 +432,23 @@ namespace ServerMessenger
         {
             LogoutVerification(client, protocol);
             authorizedClients.Remove(client);
-            ChatProtocol response = chatManager.CreateResponseProtocol(protocol.Command, "OK");
+            ChatProtocol response = chatManager.CreateResponseOkProtocol(protocol.Command);
             NotifyClientWithPackage(client, response.Package);
         }
 
         private static void LogoutVerification(Socket client, ChatProtocol protocol)
         {
             if (!ClientIsConnected(client))
-                throw new Exception("Error: Client is not logged in ");
+                throw new Exception("Error: Client is not logged in");
             if (!EmptyProtocolPayload(protocol))
                 throw new Exception("Error: Logout command must be written alone");
         }
 
         private static void ProcessRegisterRequest(Socket client, ChatProtocol protocol)
         {
+            if (ClientIsConnected(client))
+                throw new Exception("Error: Logout before registering a new user");
+
             string errorMsg = "Wrong register parameters separated by '#'";
             var profileAccessInfo = ExtractUserProfileAccessInfo(protocol.Payload, errorMsg);
             ValidateRegisterInformation(client, profileAccessInfo.Item1, profileAccessInfo.Item2, protocol);
@@ -439,7 +460,7 @@ namespace ServerMessenger
                 throw new Exception("Error: Profile username already registered");
 
             CreateProfileAndLogin(client, user, password);
-            ChatProtocol response = chatManager.CreateResponseProtocol(protocol.Command, "OK");
+            ChatProtocol response = chatManager.CreateResponseOkProtocol(protocol.Command);
             NotifyClientWithPackage(client, response.Package);           
         }
 
@@ -471,7 +492,7 @@ namespace ServerMessenger
         {
             LoginVerification(client, user);            
             LoginClientAsUserProfile(client, user, password);
-            ChatProtocol response = chatManager.CreateResponseProtocol(protocol.Command, "OK");
+            ChatProtocol response = chatManager.CreateResponseOkProtocol(protocol.Command);
             NotifyClientWithPackage(client, response.Package);                               
         }
 
@@ -541,8 +562,12 @@ namespace ServerMessenger
 
         private static void EndConnection(Socket client)
         {
-            client.Shutdown(SocketShutdown.Both);
-            client.Close();
+            try
+            {
+                client.Shutdown(SocketShutdown.Both);
+                client.Close();
+            }
+            catch (Exception) { }
         }
 
         private static void AppendBufferToStringBuilder(ref StringBuilder sb, char[] payloadBuffer, int payloadLength)
