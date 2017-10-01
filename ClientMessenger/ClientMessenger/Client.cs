@@ -1,6 +1,7 @@
 ﻿using MessengerDomain;
 using ServerMessenger;
 using System;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -12,10 +13,13 @@ namespace ClientMessenger
     {
         private static Socket tcpClient;
         private static NetworkStream netStream;
-        private static Byte[] data;
+        private static Byte[] dataRead;
+        private static Byte[] dataWrite;
         private static ProtocolManager chatManager;
-        private static bool displayMenu = true;
         private static string serverErrorMsg = "Server disconnected. Unable to establish connection";
+        private static bool liveChatting = false;
+        private static bool displayMenu = true;
+        private static string liveChatUser = "";
         static void Main()
         {
             ConnectToServer();
@@ -65,23 +69,32 @@ namespace ClientMessenger
 
         private static void ReceiveResponseFromServer()
         {
+            StreamReader reader = new StreamReader(netStream); //Si no anda subirlo
+ 
             try
             {
-                data = new Byte[256];
+                var sb = new StringBuilder();
+                int packageLength = chatManager.ReadFixedBytesFromPackage(tcpClient, reader, ref sb);
+                chatManager.ReadPayloadBytesFromPackage(tcpClient, reader, ref sb, packageLength);
+                var package = sb.ToString();
+                ChatProtocol chatMsg = new ChatProtocol(package);
+                /*
+                dataRead = new Byte[256];
                 String responseData = String.Empty;
-                Int32 bytes = netStream.Read(data, 0, data.Length);
-                responseData = Encoding.ASCII.GetString(data, 0, bytes);
-                ProcessResponse(responseData);
+                Int32 bytes = netStream.Read(dataRead, 0, dataRead.Length);
+                var package = Encoding.ASCII.GetString(dataRead, 0, bytes);    
+                */
+                ProcessResponse(package);
             }
             catch (Exception)
             {
                 ServerConnectionLost();
-            }
+            }            
         }
 
-        private static void ProcessResponse(String responseData)
+        private static void ProcessResponse(String package)
         {
-            ChatProtocol chatPackage = new ChatProtocol(responseData);
+            ChatProtocol chatPackage = new ChatProtocol(package);
             DisplayResponseByType(chatPackage);               
         }
 
@@ -113,7 +126,7 @@ namespace ClientMessenger
                     Console.WriteLine("> Connected ");
                     break;
                 case 3:
-                    ShowUserList(data, "No users online", "Online:");
+                    ShowOnlineUsers(data);
                     break;
                 case 4:
                     ShowFriendList(data);
@@ -127,6 +140,9 @@ namespace ClientMessenger
                 case 7:
                     Console.WriteLine("> Reply done!");
                     break;
+                case 8:
+                    ShowLiveChat(data);
+                    break;
                 case 99:
                     connected = false;
                     Console.WriteLine("> {Server closed connection} ");
@@ -134,6 +150,44 @@ namespace ClientMessenger
                 default:
                     Console.WriteLine("> Response not implemented");
                     break;
+            }
+        }
+
+        private static void ShowLiveChat(string data)
+        {
+            string[] message = data.Split('#');
+            if (message.Length > 2)
+            {
+                if (message[1].Equals("END"))
+                {
+                    liveChatting = false;
+                    liveChatUser = "";
+                }
+                else
+                {
+                    liveChatting = true;
+                    liveChatUser = message[0];
+                    Console.WriteLine("> " + message[2]); 
+                }
+            }else
+            {
+                Console.WriteLine("> " + data);
+            }
+        }
+
+        private static void ShowOnlineUsers(string data)
+        {
+            if (data.Equals(String.Empty))
+                Console.WriteLine("> No users online.");
+            else
+            {
+                string[] users = data.Split('#');
+                Console.WriteLine("> Online users:");
+                foreach (var user in users)
+                {
+                    string[] userInfo = user.Split('_');
+                    Console.WriteLine("- " + userInfo[0] + " | Friends: (" + userInfo[1] + ")" + " | Connections: (" + userInfo[2] + ") | Online for (" +userInfo[3]+ ") ");
+                }
             }
         }
 
@@ -167,44 +221,51 @@ namespace ClientMessenger
             }           
         }
 
-        private static char[] TakeWhileNonEndString(string message, string endString)
-        {
-            return message.TakeWhile(str => !str.Equals(endString)).ToArray().ToString().ToCharArray();
-        }
-
-        private static void DisplayClientMenu(ChatProtocol protocol)
-        {
-            if (protocol.GetCommandNumber().Equals(0))
-                displayMenu = true;
-
-            if (displayMenu)            
-                ShowMenu();            
-        }
         private static void ShowMenu()
         {
-            Console.WriteLine("[00] Logout\n" +"[01] Login\n" + "[02] Register & Login\n" + "[03] Online users\n" +
-                "[04] Friend list\n" + "[05] Send friend request\n" + "[06] Pending friend requests\n"+ "[07] Reply to friend requests");
+            Console.WriteLine("[00] Logout\n" + "[01] Login\n" + "[02] Register & Login\n" + "[03] Online users\n" +
+                "[04] Friend list\n" + "[05] Send friend request\n" + "[06] Pending friend requests\n" + "[07] Reply to friend requests\n" + "[08] Chat with friend");
             displayMenu = false;
         }
 
         private static void SendRequestToServer()
-        {         
-            String message = Console.ReadLine();            
-            ChatProtocol request = chatManager.CreateRequestProtocolFromInput(message);            
-            SendPackage(request);                         
+        {
+            String message = Console.ReadLine();
+            ChatProtocol request = MakeChatProtocolRequest(message);
+            SendPackage(request);
+        }
+
+        private static ChatProtocol MakeChatProtocolRequest(string message)
+        {
+            ChatProtocol request;
+            if (liveChatting)
+            {
+                string[] chatModeMsg = message.Split('#');
+                string recieverUserProfile = liveChatUser;
+                string chatState = ChatData.LIVECHAT_CHAT;
+                string msg = message;
+                if(chatModeMsg.Length > 1)
+                {
+                    recieverUserProfile = chatModeMsg[0];
+                    chatState = chatModeMsg[1];
+                    msg = "";
+                }
+                request = chatManager.CreateLiveChatRequestProtocol(recieverUserProfile, chatState, msg);
+            }
+            else
+                request = chatManager.CreateRequestProtocolFromInput(message);
+            return request;
         }
 
         private static void SendPackage(ChatProtocol request)
         {
             try
             {
-                data = Encoding.ASCII.GetBytes(request.Package);
-                if(netStream.CanWrite)
-                    netStream.Write(data, 0, data.Length);
-                else
-                    ServerConnectionLost();
+                dataWrite = Encoding.ASCII.GetBytes(request.Package);
+                netStream.Write(dataWrite, 0, dataWrite.Length);
+                netStream.Flush(); ///OK?
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 ServerConnectionLost();
             }

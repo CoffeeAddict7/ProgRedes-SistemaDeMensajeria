@@ -12,7 +12,7 @@ namespace ServerMessenger
     public class Server
     {
         private static bool acceptingConnections;
-        private static Dictionary<Socket, Thread> activeClientThreads; //Close threads and sockets if server makes shutdown command
+        private static Dictionary<Socket, Thread> activeClientThreads;
         private static Socket tcpServer;
         private static ProtocolManager chatManager;
         private static List<UserProfile> storedUserProfiles;
@@ -35,6 +35,8 @@ namespace ServerMessenger
         {
             UserProfile luis = new UserProfile("LUIS", "PEPE");
             UserProfile jose = new UserProfile("JOSE", "PEPE");
+            luis.AddFriend(jose);
+            jose.AddFriend(luis);
             storedUserProfiles.Add(luis);
             storedUserProfiles.Add(jose);
         }
@@ -87,80 +89,40 @@ namespace ServerMessenger
                 ChatProtocol closeConnectionResponse = chatManager.CreateResponseOkProtocol("99");
                 NotifyClientWithPackage(entry.Key, closeConnectionResponse.Package);
                 authorizedClients.Remove(entry.Key);
-                EndConnection(entry.Key);
+                chatManager.EndConnection(entry.Key);
             }
             activeClientThreads = new Dictionary<Socket, Thread>();
         }
 
-        private static int ReadFixedBytesFromPackage(Socket client ,StreamReader reader, ref StringBuilder sb)
-        {
-            var buffer = new char[10000];
-            int received = 0, localReceived = 0, bytesLeftToRead = 0, packageLength = ChatData.PROTOCOL_FIXED_BYTES;
-            while(received != ChatData.PROTOCOL_FIXED_BYTES)
-            {
-                bytesLeftToRead = ChatData.PROTOCOL_FIXED_BYTES - received;
-                localReceived = reader.Read(buffer, received, bytesLeftToRead);
-                received += localReceived;
-
-                if (localReceived > 0)
-                {
-                    AppendBufferToStringBuilder(ref sb, buffer, received);
-                    Int32.TryParse(sb.ToString().Substring(5), out packageLength);
-                }
-                else
-                {
-                    EndConnection(client);
-                }
-            }
-            return packageLength;
-        }
-
-        private static void ReadPayloadBytesFromPackage(Socket client, StreamReader reader, ref StringBuilder sb, int packageLength)
-        {
-            var payloadBuffer = new char[10000];
-            int received = 0, localReceived = 0, bytesLeftToRead = 0;
-            int payloadLength = packageLength - ChatData.PROTOCOL_FIXED_BYTES;
-            while (received != payloadLength)
-            {
-                bytesLeftToRead = payloadLength - received;
-                localReceived = reader.Read(payloadBuffer, received, bytesLeftToRead);
-                received += localReceived;
-
-                if (localReceived > 0)
-                {
-                    AppendBufferToStringBuilder(ref sb, payloadBuffer, payloadLength);
-                }
-                else
-                {
-                    EndConnection(client);
-                }
-            }
-        }
+  
 
         private static void ClientHandler(Socket client)
         {
             NetworkStream stream = new NetworkStream(client);
-            var reader = new StreamReader(stream);
-            try
-            {
-                while (acceptingConnections && !ServerExecuteCommand())
+            StreamReader reader = new StreamReader(stream);
+          //  using (var reader = new StreamReader(stream))
+           // {
+                try
                 {
-                    var sb = new StringBuilder();
-                    int packageLength = ReadFixedBytesFromPackage(client, reader, ref sb);
-                    ReadPayloadBytesFromPackage(client, reader, ref sb, packageLength);
-                    var package = sb.ToString();
-                    ChatProtocol chatMsg = new ChatProtocol(package);
-                    ProcessMessage(client, chatMsg);
+                    while (acceptingConnections && !ServerExecuteCommand())
+                    {
+                        var sb = new StringBuilder();
+                        int packageLength = chatManager.ReadFixedBytesFromPackage(client, reader, ref sb);
+                        chatManager.ReadPayloadBytesFromPackage(client, reader, ref sb, packageLength);
+                        var package = sb.ToString();
+                        ChatProtocol chatMsg = new ChatProtocol(package);
+                        ProcessMessage(client, chatMsg);
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Client disconnected!");
-                authorizedClients.Remove(client);
-                activeClientThreads.Remove(client);
-            }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Client disconnected!");
+                    authorizedClients.Remove(client);
+                    activeClientThreads.Remove(client);
+                }
+            //}
             stream.Close();
-            CloseServerConnection();
+            //chatManager.EndConnection(client);
         }
 
         private static bool ServerExecuteCommand()
@@ -219,9 +181,174 @@ namespace ServerMessenger
                 case 7:
                     ProcessReplyToFriendRequest(client, chatMsg);
                     break;
+                case 8:
+                    ProcessChatModeRequest2(client, chatMsg);
+                    break;
                 default:
                     throw new Exception("Error: Unidentified command");
             }
+        }
+
+        private static void ProcessChatModeRequest2(Socket client, ChatProtocol chatMsg)
+        {
+            try
+            {
+                string chatProfile = "";
+                string chatType = "";
+                string chatMessage = "";
+                string[] msgInfo = chatMsg.Payload.Split('#');
+                if (msgInfo.Length >= 2)
+                {
+                    chatProfile = msgInfo[0];
+                    chatType = msgInfo[1];
+                    if(msgInfo.Length.Equals(3))
+                        chatMessage = msgInfo[2];
+                }
+                CheckLiveChatMessageInfo(client, chatProfile, chatType);
+                UserProfile senderProf = authorizedClients.First(auth => ClientsAreEquals(auth.Key, client)).Value;
+                UserProfile recieverProf = storedUserProfiles.First(prof => prof.UserName.Equals(chatProfile));
+
+                if (chatType.Equals(ChatData.LIVECHAT_CHAT))
+                {
+                    if (ProfileIsConnectedToAClient(chatProfile))
+                    {
+                        //ONLINE
+                        Socket recieverClient = authorizedClients.First(auth => ProfilesAreEquals(auth.Value, recieverProf)).Key;
+                        ValidateChatModeInformation(client, senderProf, recieverProf);
+                        ChatProtocol recieverResponse = chatManager.CreateLiveChatResponseProtocol(chatProfile, ChatData.LIVECHAT_CHAT, client.RemoteEndPoint + " te dice: " + chatMessage);
+                        NotifyClientWithPackage(recieverClient, recieverResponse.Package);
+                    }
+                    else
+                    { 
+                        OfflineChat(client, chatMessage, senderProf, recieverProf);
+                    }
+                }
+                else
+                {
+                    //End Chat
+                    if (ProfileIsConnectedToAClient(chatProfile))
+                    {
+
+                    }else
+                    {
+                        senderProf.UnSetLiveChatProfile();
+                        ChatProtocol response = chatManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_END, "Chat ended.");
+                        NotifyClientWithPackage(client, response.Package);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Algun error");
+            }
+        }
+
+        private static void OfflineChat(Socket client, string chatMessage, UserProfile senderProf, UserProfile recieverProf)
+        {
+            if (!senderProf.IsFriendWith(recieverProf))
+                throw new Exception("Error: The user is not friend with you");
+
+            if (!senderProf.HasLiveChatProfileSet())//Primera vez que hace CHAT
+            {
+                senderProf.SetLiveChatProfile(recieverProf, false);
+                ChatProtocol response = chatManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, "Begin chat... He will recieve your messages when he connects");
+                NotifyClientWithPackage(client, response.Package);
+            }
+            else
+            {
+                if (ProfilesAreEquals(senderProf.PendingLiveChatProfile(), recieverProf))
+                {
+                    recieverProf.AddPendingMessage(senderProf, chatMessage);
+                    ChatProtocol response = chatManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, "Sent > " + chatMessage);
+                    NotifyClientWithPackage(client, response.Package);
+                }
+                else
+                    throw new Exception("Error: You can only enter chat mode with one friend");
+            }
+        }
+
+        private static void CheckLiveChatMessageInfo(Socket client, string chatProfile, string chatType)
+        {
+            if (!ClientIsConnected(client))
+                throw new Exception("Error: To enter chat mode you must be logged in");
+            if (!ProfileUserNameExists(chatProfile))
+                throw new Exception("Error: Username doesnt exists");
+            if (!chatType.Equals(ChatData.LIVECHAT_END) && !chatType.Equals(ChatData.LIVECHAT_CHAT))
+                throw new Exception("Error: Wrong chat mode state. Must be CHAT or END");
+        }
+
+        private static void ProcessChatModeRequest(Socket client, ChatProtocol chatMsg)
+        {
+            if (!ClientIsConnected(client))
+                throw new Exception("Error: To enter chat mode you must be logged in");
+
+            string profileToSend = chatMsg.Payload;
+            string message = "";
+            string[] msgInfo = chatMsg.Payload.Split('#');
+            if(msgInfo.Length > 1)
+            {
+                profileToSend = msgInfo[0];
+                message = msgInfo[1];
+            }
+            
+            if (!ProfileUserNameExists(profileToSend))
+                throw new Exception("Error: Username doesnt exists");
+
+            UserProfile sender = authorizedClients.First(auth => ClientsAreEquals(auth.Key, client)).Value;
+            UserProfile reciever = storedUserProfiles.First(prof => prof.UserName.Equals(profileToSend));
+            ValidateChatModeInformation(client, sender, reciever);
+            ApplyChatMode(chatMsg, client, sender, reciever);
+        }
+
+        private static void ApplyChatMode(ChatProtocol chatMsg, Socket client, UserProfile sender, UserProfile reciever)
+        {
+            if (ProfileIsConnectedToAClient(reciever.UserName))
+                AttemptLiveChat(chatMsg, client, sender, reciever);
+        }
+
+        private static void AttemptLiveChat(ChatProtocol chatMsg,Socket client, UserProfile sender, UserProfile reciever)
+        {
+            Socket clientReciever = authorizedClients.First(auth => ProfilesAreEquals(auth.Value, reciever)).Key;
+
+            if (reciever.HasLiveChatProfileSet()) 
+            {
+                if (ProfilesAreEquals(sender, reciever.PendingLiveChatProfile()))
+                {
+                    if (reciever.IsOnLiveChat())                    
+                        NotifyClientWithPackage(clientReciever, chatMsg.Payload);                    
+                    else                    
+                        BeginLiveChatOnClients(chatMsg, client, sender, reciever, clientReciever);                    
+                }
+                else                
+                    SetLiveChatProfileAndSendMessage(client, sender, reciever, chatMsg, reciever.UserName + " is chatting with other user. Wait or cancel chat mode");                                    
+            }
+            else            
+                SetLiveChatProfileAndSendMessage(client, sender, reciever, chatMsg, "Waiting for: " + reciever.UserName + " to chat with you...");                     
+        }
+
+        private static void BeginLiveChatOnClients(ChatProtocol chatMsg, Socket client, UserProfile sender, UserProfile reciever, Socket clientReciever)
+        {
+            sender.SetLiveChatProfile(reciever, true);
+            reciever.SetLiveChatProfile(sender, true);
+            ChatProtocol responseSender = chatManager.CreateResponseOkProtocol(chatMsg.Command,reciever.UserName+"#CHAT#"+ "Begin live chat...");
+
+            ChatProtocol responseReciever = chatManager.CreateResponseOkProtocol(chatMsg.Command, sender.UserName + "#CHAT#" + "Begin live chat...");            
+            NotifyClientWithPackage(client, responseSender.Package);
+            NotifyClientWithPackage(clientReciever, responseReciever.Package);
+        }
+
+        private static void SetLiveChatProfileAndSendMessage(Socket client, UserProfile sender, UserProfile reciever, ChatProtocol chatMsg, string payload)
+        {
+            sender.SetLiveChatProfile(reciever, false);
+            ChatProtocol response = chatManager.CreateResponseOkProtocol(chatMsg.Command, payload);
+            NotifyClientWithPackage(client, response.Package);
+        }
+        private static void ValidateChatModeInformation(Socket client, UserProfile sender, UserProfile reciever)
+        {
+            if (!sender.IsFriendWith(reciever))
+                throw new Exception("Error: The user is not friend with you");
+            if (sender.HasLiveChatProfileSet() && !ProfilesAreEquals(sender.PendingLiveChatProfile(), reciever))
+                throw new Exception("Error: You can only enter chat mode with one friend");
         }
 
         private static void ProcessReplyToFriendRequest(Socket client, ChatProtocol protocol)
@@ -410,7 +537,7 @@ namespace ServerMessenger
                 profile = onlineProf[index];
                 if (DistinctUserProfiles(clientProf, profile))
                 {
-                    connectedUsers += profile.UserName;
+                    connectedUsers += profile.UserName + "_" + profile.FriendsAmmount() + "_" + profile.NumberOfConnections + "_" + profile.GetSessionDuration();
                     if (DistinctUserProfiles(profile, lastProfile) && !(IndexIsPenultimate(onlineProf.IndexOf(lastProfile), index) && !DistinctUserProfiles(clientProf, lastProfile)))
                         connectedUsers += "#";
                 }
@@ -497,10 +624,19 @@ namespace ServerMessenger
         }
 
         private static void NotifyClientWithPackage(Socket client, string resPackage)
-        {            
-            Byte[] responseBuffer = Encoding.ASCII.GetBytes(resPackage);
-            NetworkStream stream = new NetworkStream(client);
-            stream.Write(responseBuffer, 0, responseBuffer.Length);
+        {
+            try
+            {
+                Byte[] responseBuffer = Encoding.ASCII.GetBytes(resPackage);
+                NetworkStream stream = new NetworkStream(client);
+                stream.Write(responseBuffer, 0, responseBuffer.Length);
+                stream.Flush(); //OK?
+
+            }catch(Exception ex)
+            {
+                Console.WriteLine("No se pudo enviar respuesta a " + client.RemoteEndPoint);
+            }
+           
         }
 
         private static bool ClientIsConnected(Socket client)
@@ -517,7 +653,6 @@ namespace ServerMessenger
             var profile = ExtractProfileFromAttributes(user, password);
             authorizedClients.Add(client, profile);
             profile.NewConnectionMade();
-            Console.WriteLine("Number of connections -> " + profile.NumberOfConnections);
         }
 
         private static void LoginVerification(Socket client, string user)
@@ -560,22 +695,7 @@ namespace ServerMessenger
                 throw new Exception("Error: Wrong client header");
         }
 
-        private static void EndConnection(Socket client)
-        {
-            try
-            {
-                client.Shutdown(SocketShutdown.Both);
-                client.Close();
-            }
-            catch (Exception) { }
-        }
 
-        private static void AppendBufferToStringBuilder(ref StringBuilder sb, char[] payloadBuffer, int payloadLength)
-        {
-            var bufferCopy = new char[payloadLength];
-            Array.Copy(payloadBuffer, bufferCopy, payloadLength);
-            sb.Append(bufferCopy);
-        }
     }
 }
 

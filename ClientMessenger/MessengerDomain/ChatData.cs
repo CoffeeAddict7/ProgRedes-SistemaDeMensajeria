@@ -16,6 +16,9 @@ namespace MessengerDomain
         public static int PROFILE_ATTRIBUTES_MIN_LENGTH = 4;
         public static string FRIEND_REQUEST_YES_REPLY = "YES";
         public static string FRIEND_REQUEST_NO_REPLY = "NO";
+        public static string LIVECHAT_END = "END";
+        public static string LIVECHAT_CHAT = "CHAT";
+        public static string CMD_LIVECHAT = "08";
         public static ICollection<string> acceptedFriendRequestReply = new List<String> { FRIEND_REQUEST_YES_REPLY, FRIEND_REQUEST_NO_REPLY};
     }
 }

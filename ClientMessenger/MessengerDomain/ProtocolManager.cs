@@ -1,7 +1,9 @@
 ﻿using ServerMessenger;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -41,6 +43,7 @@ namespace MessengerDomain
             if (message.Length < 2)
                 throw new Exception("Error: Invalid command");
         }
+  
         public ChatProtocol CreateResponseOkProtocol(string cmd)
         {
             return CreateResponseOkProtocol(cmd, String.Empty);
@@ -50,13 +53,28 @@ namespace MessengerDomain
             string package = BuildPackage(ChatData.RESPONSE_HEADER, cmd, ChatData.RESPONSE_OK + "$" + payload);
             return new ChatProtocol(package);
         }
+
+        public ChatProtocol CreateLiveChatResponseProtocol(string profile, string chatState, string message)
+        {
+            return CreateLiveChatProtocol(ChatData.RESPONSE_HEADER, ChatData.RESPONSE_OK + "$" + profile + "#" + chatState + "#" + message);
+        }
+        public ChatProtocol CreateLiveChatRequestProtocol(string profile, string chatState, string message)
+        {
+            return CreateLiveChatProtocol(ChatData.REQUEST_HEADER, profile + "#" + chatState + "#" + message);
+        }
+        private ChatProtocol CreateLiveChatProtocol(string type, string payload)
+        {
+            string package = BuildPackage(type, ChatData.CMD_LIVECHAT, payload);
+            return new ChatProtocol(package);
+        }
+
         public ChatProtocol CreateResponseErrorProtocol(string cmd, string payload)
         {
             string package = BuildPackage(ChatData.RESPONSE_HEADER, cmd, ChatData.RESPONSE_ERROR + "$" + payload);
             return new ChatProtocol(package);
         }
 
-        private ChatProtocol CreateRequestProtocol(string cmd, string payload)
+        public ChatProtocol CreateRequestProtocol(string cmd, string payload)
         {
             string package = BuildPackage(ChatData.REQUEST_HEADER, cmd, payload);
             return new ChatProtocol(package);
@@ -80,6 +98,68 @@ namespace MessengerDomain
         private static bool ProtocolCommandInRange(int cmd)
         {
             return cmd < 100 && cmd < 9;
+        }
+
+        public int ReadFixedBytesFromPackage(Socket client, StreamReader reader, ref StringBuilder sb)
+        {
+            var buffer = new char[10000];
+            int received = 0, localReceived = 0, bytesLeftToRead = 0, packageLength = ChatData.PROTOCOL_FIXED_BYTES;
+            while (received != ChatData.PROTOCOL_FIXED_BYTES)
+            {
+                bytesLeftToRead = ChatData.PROTOCOL_FIXED_BYTES - received;
+                localReceived = reader.Read(buffer, received, bytesLeftToRead);
+                received += localReceived;
+
+                if (localReceived > 0)
+                {
+                    AppendBufferToStringBuilder(ref sb, buffer, received);
+                    Int32.TryParse(sb.ToString().Substring(5), out packageLength);
+                }
+                else
+                {
+                    EndConnection(client);
+                }
+            }
+            return packageLength;
+        }
+
+        public void ReadPayloadBytesFromPackage(Socket client, StreamReader reader, ref StringBuilder sb, int packageLength)
+        {
+            var payloadBuffer = new char[10000];
+            int received = 0, localReceived = 0, bytesLeftToRead = 0;
+            int payloadLength = packageLength - ChatData.PROTOCOL_FIXED_BYTES;
+            while (received != payloadLength)
+            {
+                bytesLeftToRead = payloadLength - received;
+                localReceived = reader.Read(payloadBuffer, received, bytesLeftToRead);
+                received += localReceived;
+
+                if (localReceived > 0)
+                {
+                    AppendBufferToStringBuilder(ref sb, payloadBuffer, payloadLength);
+                }
+                else
+                {
+                    EndConnection(client);
+                }
+            }
+        }
+
+        public void AppendBufferToStringBuilder(ref StringBuilder sb, char[] payloadBuffer, int payloadLength)
+        {
+            var bufferCopy = new char[payloadLength];
+            Array.Copy(payloadBuffer, bufferCopy, payloadLength);
+            sb.Append(bufferCopy);
+        }
+
+        public void EndConnection(Socket client)
+        {
+            try
+            {
+                client.Shutdown(SocketShutdown.Both);
+                client.Close();
+            }
+            catch (Exception) { }
         }
     }
 }
