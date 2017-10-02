@@ -19,6 +19,7 @@ namespace MessengerDomain
         public static string LIVECHAT_END = "END";
         public static string LIVECHAT_CHAT = "CHAT";
         public static string CMD_LIVECHAT = "08";
+        public static string BEGIN_LIVECHAT = "Begin chat...";
         public static ICollection<string> acceptedFriendRequestReply = new List<String> { FRIEND_REQUEST_YES_REPLY, FRIEND_REQUEST_NO_REPLY};
     }
 }

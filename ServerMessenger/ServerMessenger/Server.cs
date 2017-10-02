@@ -31,7 +31,6 @@ namespace ServerMessenger
             {
                 Console.WriteLine(ex.Message);
                 Console.Read();
-
             }
          
         }
@@ -104,9 +103,7 @@ namespace ServerMessenger
             foreach (KeyValuePair<Socket, Thread> entry in activeClientThreads)
             {
                 ChatProtocol closeConnectionResponse = chatManager.CreateResponseOkProtocol("99");
-                NotifyClientWithPackage(entry.Key, closeConnectionResponse.Package);
-                authorizedClients.Remove(entry.Key);
-                chatManager.EndConnection(entry.Key);
+                EndClientConnection(entry.Key);
             }
             activeClientThreads = new Dictionary<Socket, Thread>();
         }
@@ -122,21 +119,31 @@ namespace ServerMessenger
                     var sb = new StringBuilder();
                     int packageLength = chatManager.ReadFixedBytesFromPackage(client, reader, ref sb);
                     chatManager.ReadPayloadBytesFromPackage(client, reader, ref sb, packageLength);
-                    
                     var package = sb.ToString();
                     ChatProtocol chatMsg = new ChatProtocol(package);
                     ProcessMessage(client, chatMsg);
-                                             
                 }
+                CloseServerConnection();
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Client disconnected!");
-                authorizedClients.Remove(client);
-                activeClientThreads.Remove(client);
-            }
+            catch (Exception) { }
+            Console.WriteLine("Client disconnected!");
             stream.Close();
-            //chatManager.EndConnection(client);
+            EndClientConnection(client);
+            activeClientThreads.Remove(client);
+        }
+
+        private static void EndClientConnection(Socket client)
+        {
+            Socket clientMessenger = GetClientMessengerSocket(client);
+            authorizedClients.Remove(client);
+            clientAndMessanger.Remove(new KeyValuePair<Socket, Socket>(client, clientMessenger));            
+            chatManager.EndConnection(client);
+            chatManager.EndConnection(clientMessenger);
+        }
+
+        private static Socket GetClientMessengerSocket(Socket client)
+        {
+            return clientAndMessanger.Find(kvp => kvp.Key.RemoteEndPoint.Equals(client.RemoteEndPoint)).Value;
         }
 
         private static bool ServerExecuteCommand()
@@ -290,16 +297,9 @@ namespace ServerMessenger
             recieverProf.SetLiveChatProfile(senderProf, true);
 
             Socket recieverMessenger = clientAndMessanger.Find(kvp => kvp.Key.RemoteEndPoint.Equals(recieverClient.RemoteEndPoint)).Value;
-
-            SearchAndSendLiveChatMessage(recieverClient,senderProf.UserName, "Begin chat...");
-
-            ChatProtocol senderResponse = chatManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, "Begin chat...");
+            SearchAndSendLiveChatMessage(recieverClient,senderProf.UserName, ChatData.BEGIN_LIVECHAT);
+            ChatProtocol senderResponse = chatManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, ChatData.BEGIN_LIVECHAT);
             NotifyClientWithPackage(client, senderResponse.Package);
-
-            //     ChatProtocol recieverResponse = chatManager.CreateLiveChatResponseProtocol(senderProf.UserName, ChatData.LIVECHAT_CHAT, "Begin chat...");
-            //    NotifyClientWithPackage(recieverMessenger, recieverResponse.Package);
-            //    ChatProtocol recieverResponse = chatManager.CreateLiveChatResponseProtocol(senderProf.UserName, ChatData.LIVECHAT_CHAT, "Begin chat...");
-            // NotifyClientWithPackage(recieverClient, recieverResponse.Package);
         }
 
         private static void EndOfflineChat(Socket client, UserProfile senderProf, UserProfile recieverProf)
@@ -314,7 +314,7 @@ namespace ServerMessenger
             if (!senderProf.IsFriendWith(recieverProf))
                 throw new Exception("Error: The user is not friend with you");
 
-            if (!senderProf.HasLiveChatProfileSet())//Primera vez que hace CHAT
+            if (!senderProf.HasLiveChatProfileSet())
             {
                 senderProf.SetLiveChatProfile(recieverProf, false);
                 ChatProtocol response = chatManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, "Begin chat... He will recieve your messages when he connects");
@@ -343,12 +343,6 @@ namespace ServerMessenger
                 throw new Exception("Error: Wrong chat mode state. Must be CHAT or END");
         }   
 
-        private static void SetLiveChatProfileAndSendMessage(Socket client, UserProfile sender, UserProfile reciever, ChatProtocol chatMsg, string payload)
-        {
-            sender.SetLiveChatProfile(reciever, false);
-            ChatProtocol response = chatManager.CreateResponseOkProtocol(chatMsg.Command, payload);
-            NotifyClientWithPackage(client, response.Package);
-        }
         private static void ValidateChatModeInformation(Socket client, UserProfile sender, UserProfile reciever)
         {
             if (!sender.IsFriendWith(reciever))
@@ -639,10 +633,10 @@ namespace ServerMessenger
                     Byte[] responseBuffer = Encoding.ASCII.GetBytes(resPackage);
                     NetworkStream stream = new NetworkStream(client);
                     stream.Write(responseBuffer, 0, responseBuffer.Length);
-                    stream.Flush(); //OK?
+                    stream.Flush();
                 }               
 
-            }catch(Exception ex)
+            }catch(Exception)
             {
                 Console.WriteLine("Couldn't send response to -> " + client.RemoteEndPoint);
             }
@@ -704,7 +698,6 @@ namespace ServerMessenger
             if (!chatMsg.Header.Equals(ChatData.REQUEST_HEADER))
                 throw new Exception("Error: Wrong client header");
         }
-
 
     }
 }

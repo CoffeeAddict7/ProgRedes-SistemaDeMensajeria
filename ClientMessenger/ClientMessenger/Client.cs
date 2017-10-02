@@ -77,10 +77,9 @@ namespace ClientMessenger
         {
             try
             {
-                while (connected)
-                {
+                while (connected)                
                     ReceiveMessagesFromServer();
-                }
+                
             }catch(Exception ex)
             {
                 Console.WriteLine(ex.Message);
@@ -134,7 +133,6 @@ namespace ClientMessenger
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.Message);
                 ServerConnectionLost();
             }            
         }
@@ -318,9 +316,9 @@ namespace ClientMessenger
             {
                 dataWrite = Encoding.ASCII.GetBytes(request.Package);
                 netStream.Write(dataWrite, 0, dataWrite.Length);
-                netStream.Flush(); ///OK?
+                netStream.Flush(); 
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 ServerConnectionLost();
             }
