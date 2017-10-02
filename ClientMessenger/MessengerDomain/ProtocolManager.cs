@@ -92,20 +92,6 @@ namespace MessengerDomain
             string packageSize = BuildProtocolHeaderLength(ChatData.PROTOCOL_FIXED_BYTES + payload.Length);
             return header + cmd + packageSize + payload;
         }
-        private string NumericCmdToFixedCommand(int cmd)
-        {
-            string command = cmd.ToString();
-            if (ProtocolCommandInRange(cmd))
-                command = "0" + command;
-            else
-                throw new Exception("Error: Command must be less than 2 digits");
-            return command;
-        }
-
-        private static bool ProtocolCommandInRange(int cmd)
-        {
-            return cmd < 100 && cmd < 9;
-        }
 
         public int ReadFixedBytesFromPackage(Socket client, StreamReader reader, ref StringBuilder sb)
         {

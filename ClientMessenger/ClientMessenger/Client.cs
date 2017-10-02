@@ -22,8 +22,8 @@ namespace ClientMessenger
         private static ProtocolManager chatManager;
         private static string serverErrorMsg = "Server disconnected. Unable to establish connection";
         private static bool liveChatting = false;
-        private static bool displayMenu = true;
         private static string liveChatUser = "";
+
         static void Main()
         {
             ConnectToServer();
@@ -83,14 +83,10 @@ namespace ClientMessenger
         {
             try
             {
-                while (connected)                
+                while (connected)
                     ReceiveMessagesFromServer();
-                
-            }catch(Exception ex)
-            {
-                Console.WriteLine(ex.Message);
             }
-                     
+            catch (Exception) { }                        
         }
 
         private static void ReceiveMessagesFromServer()
@@ -144,20 +140,12 @@ namespace ClientMessenger
         {
             StreamReader reader = new StreamReader(netStream);
             try
-            {
-                /*
-                var sb = new StringBuilder();
-                int packageLength = chatManager.ReadFixedBytesFromPackage(tcpClient, reader, ref sb);
-                chatManager.ReadPayloadBytesFromPackage(tcpClient, reader, ref sb, packageLength);
-                var package = sb.ToString();*/
-                
+            {               
                 dataRead = new Byte[9999];
                 String responseData = String.Empty;
                 Int32 bytes = netStream.Read(dataRead, 0, dataRead.Length);
-                var package = Encoding.ASCII.GetString(dataRead, 0, bytes);
-                
-                ProcessResponse(package);
-                
+                var package = Encoding.ASCII.GetString(dataRead, 0, bytes);                
+                ProcessResponse(package);                
             }
             catch (Exception)
             {
@@ -176,7 +164,7 @@ namespace ClientMessenger
             string message = chatPackage.Payload;
             string[] typeAndData = message.Split('$');
             string responseType = typeAndData[0];
-            string responseData = typeAndData[1]; //Los errores ni los usuarios pueden contener "$"
+            string responseData = typeAndData[1];
 
             if (responseType.Equals(ChatData.RESPONSE_ERROR))
                 Console.WriteLine("> " + responseData);
@@ -262,10 +250,8 @@ namespace ClientMessenger
                 if(!message[2].Equals(String.Empty))
                     Console.WriteLine("> " + message[2]);
             }
-            else
-            {
-                Console.WriteLine("> " + data);
-            }
+            else            
+                Console.WriteLine("> " + data);            
         }
 
         private static void ShowOnlineUsers(string data)
@@ -309,7 +295,7 @@ namespace ClientMessenger
                 foreach (var friend in friends)
                 {
                     string[] friendInfo = friend.Split('_');
-                    Console.WriteLine("- {" + friendInfo[0] + "} has (" + friendInfo[1] + ") friends");
+                    Console.WriteLine("- " + friendInfo[0] + " has (" + friendInfo[1] + ") friends");
                 }
             }           
         }
@@ -319,7 +305,6 @@ namespace ClientMessenger
             Console.WriteLine("[00] Logout\n" + "[01] Login\n" + "[02] Register & Login\n" + "[03] Online users\n" +
                 "[04] Friend list\n" + "[05] Send friend request\n" + "[06] Pending friend requests\n" +
                 "[07] Reply to friend requests\n" + "[08] Chat with friend\n" + "[09] Unread messages");
-            displayMenu = false;
         }
 
         private static void SendRequestToServer()

@@ -154,6 +154,5 @@ namespace ServerMessenger
             return Friends.Count;
         }
 
-
     }
 }

@@ -180,7 +180,7 @@ namespace ServerMessenger
         {
             try
             {
-                UserProfile profile = authorizedClients.First(auth => ClientsAreEquals(auth.Key, client)).Value;
+                UserProfile profile = GetProfileConnectedToClient(client);
                 if (profile.HasLiveChatProfileSet())
                 {
                     UserProfile chattingFriend = profile.LiveChatProfile.Item1;
@@ -260,7 +260,8 @@ namespace ServerMessenger
         {
             if(!ClientIsConnected(client))
                 throw new Exception("Error: To read pending messages, login first");
-            UserProfile profile = GetProfileBeingUsedByClient(client);
+
+            UserProfile profile = GetProfileConnectedToClient(client);
             string profileForReading = chatMsg.Payload;
             if (!profileForReading.Equals(String.Empty))
             {
@@ -269,9 +270,7 @@ namespace ServerMessenger
                 RespondWithPendingMessagesFromProfile(client, profile, profileForReading);
             }
             else
-            {
-                RespondWithProfilesOfPendingMessages(client, chatMsg, profile);
-            }
+                RespondWithProfilesOfPendingMessages(client, chatMsg, profile);            
         }
 
         private static void RespondWithPendingMessagesFromProfile(Socket client, UserProfile profile, string profileForReading)
@@ -299,19 +298,14 @@ namespace ServerMessenger
         {
             var profilesWithMessages = profile.GetProfilesOfPendingMessages().Select(p => p.UserName);
             string payload = "";
-            for (int i = 0; i < profilesWithMessages.Count(); i++) { 
-                var username = profilesWithMessages.ElementAt(i);         
-                    payload += username;
-                if (!IndexIsPenultimate(profilesWithMessages.Count(), i))
+            foreach(var msg in profilesWithMessages)
+            {
+                payload += msg;
+                if (!profilesWithMessages.Last().Equals(msg))
                     payload += "#";
             }
             ChatProtocol response = chatManager.CreateUnseenMessagesResponseProtocol(ChatData.PENDING_MSGS_USERS, payload);
             NotifyClientWithPackage(client, response.Package);
-        }
-
-        private static UserProfile GetProfileBeingUsedByClient(Socket client)
-        {
-            return authorizedClients.First(auth => ClientsAreEquals(auth.Key, client)).Value;
         }
 
         private static void ProcessChatModeRequest(Socket client, ChatProtocol chatMsg)
@@ -328,8 +322,8 @@ namespace ServerMessenger
                     chatMessage = msgInfo[2];
             }
             CheckLiveChatMessageInfo(client, chatProfile, chatType);
-            UserProfile senderProf = authorizedClients.First(auth => ClientsAreEquals(auth.Key, client)).Value;
-            UserProfile recieverProf = storedUserProfiles.First(prof => prof.UserName.Equals(chatProfile));
+            UserProfile senderProf = GetProfileConnectedToClient(client);
+            UserProfile recieverProf = GetStoredUserProfile(chatProfile);
 
             if (chatType.Equals(ChatData.LIVECHAT_CHAT))
             {
@@ -412,7 +406,6 @@ namespace ServerMessenger
             NotifyClientWithPackage(messengerClient, response.Package);
         }
 
-
         private static void BeginLiveChatBetweenClients(Socket client, UserProfile senderProf, UserProfile recieverProf, Socket recieverClient)
         {
             senderProf.SetLiveChatProfile(recieverProf, true);
@@ -486,8 +479,8 @@ namespace ServerMessenger
             string reply = clientMessage.Item2;
             ValidateFriendRequestReplyInformation(client, username, reply);
 
-            UserProfile clientProfile = authorizedClients.First(authCli => ClientsAreEquals(authCli.Key, client)).Value;
-            UserProfile profileToReply = storedUserProfiles.First(prof => prof.UserName.Equals(username));
+            UserProfile clientProfile = GetProfileConnectedToClient(client);
+            UserProfile profileToReply = GetStoredUserProfile(username);
 
             bool accept = (MessageIsFriendRequestReply(reply, ChatData.FRIEND_REQUEST_YES_REPLY)) ? true : false;
             clientProfile.ReplyFriendRequest(profileToReply, accept);
@@ -534,7 +527,7 @@ namespace ServerMessenger
         private static string GeneratePendingFriendRequestsPayload(Socket client)
         {
             string pendingFriendRequests = "";
-            UserProfile profile = authorizedClients.First(cli => ClientsAreEquals(cli.Key, client)).Value;
+            UserProfile profile = GetProfileConnectedToClient(client);
             foreach (var prof in profile.PendingFriendRequest)
             {
                 pendingFriendRequests += prof.UserName;
@@ -559,23 +552,26 @@ namespace ServerMessenger
 
         private static void ProcessSendFriendRequest(Socket client, ChatProtocol protocol)
         {
-            UserProfile sender, reciever;
             string userNameRequest = protocol.Payload;
             ValidateFriendRequestInformation(client, userNameRequest);
 
-            authorizedClients.TryGetValue(client, out sender);
-            reciever = storedUserProfiles.First(prof => prof.UserName.Equals(userNameRequest));
+            UserProfile sender = GetProfileConnectedToClient(client);
+            UserProfile reciever = GetStoredUserProfile(userNameRequest);
             ApplyFriendRequest(sender, reciever);
 
             ChatProtocol responseProtocol = chatManager.CreateResponseOkProtocol(protocol.Command);
             NotifyClientWithPackage(client, responseProtocol.Package);
         }
+        private static UserProfile GetStoredUserProfile(string username)
+        {
+            return storedUserProfiles.First(prof => prof.UserName.Equals(username));
+        }
 
         private static void ValidateFriendRequestInformation(Socket client, string userNameRequest)
         {
-            if (!authorizedClients.ContainsKey(client))
-                throw new Exception("Error: To send friend request login first");
-            if (!storedUserProfiles.Exists(us => us.UserName.Equals(userNameRequest)))
+            if (!ClientIsConnected(client))
+                throw new Exception("Error: To send friend request login first"); 
+            if (!ProfileUserNameExists(userNameRequest))
                 throw new Exception("Error: User profile not registered");
         }
 
@@ -612,8 +608,8 @@ namespace ServerMessenger
         }
 
         private static void ValidateFriendListInformation(Socket client, ChatProtocol protocol)
-        {
-            if (!authorizedClients.ContainsKey(client))
+        { 
+            if (!ClientIsConnected(client))
                 throw new Exception("Error: To see friend list login first");
             if (!EmptyProtocolPayload(protocol))
                 throw new Exception("Error: Friend list command must be written alone");
@@ -627,7 +623,7 @@ namespace ServerMessenger
         private static string GenerateFriendListPayload(Socket client)
         {
             string friendlist = "";
-            UserProfile profile = authorizedClients.First(cli => ClientsAreEquals(cli.Key, client)).Value;
+            UserProfile profile = GetProfileConnectedToClient(client);
             foreach (var prof in profile.Friends)
             {
                 friendlist += prof.UserName + "_" + prof.FriendsAmmount();               
@@ -652,13 +648,17 @@ namespace ServerMessenger
             if (!protocol.Payload.Equals(String.Empty))
                 throw new Exception("Error: Online users command must be written alone");
         }
+        private static UserProfile GetProfileConnectedToClient(Socket client)
+        {
+            return authorizedClients.First(auth => ClientsAreEquals(auth.Key, client)).Value;
+        }
 
         private static string GenerateConnectedUsersPayload(Socket client)
         {
             string connectedUsers = "";
             UserProfile clientProf, profile, lastProfile;
             var onlineProf = authorizedClients.Select(d => d.Value).ToList();
-            clientProf = authorizedClients.First(cli => ClientsAreEquals(cli.Key, client)).Value;
+            clientProf = GetProfileConnectedToClient(client);
             lastProfile = onlineProf.Last();
             for (int index = 0; index < onlineProf.Count; index++)
             {
@@ -739,7 +739,15 @@ namespace ServerMessenger
                 throw new Exception(errorMsg);
             string user = userProfileAttributes[0];
             string password = userProfileAttributes[1];
+            ValidateRegisterParameter(user);
+            ValidateRegisterParameter(password);
             return new Tuple<string, string>(user, password);
+        }
+
+        private static void ValidateRegisterParameter(string param)
+        {
+            if (param.Contains('$') || param.Contains('_'))
+                throw new Exception("Error: Names and passwords can't contain the specified symbol");
         }
 
         private static void ValidateLoginInformation(Socket client, string user, string password, ChatProtocol protocol)
@@ -749,7 +757,6 @@ namespace ServerMessenger
             ChatProtocol response = chatManager.CreateResponseOkProtocol(protocol.Command);
             NotifyClientWithPackage(client, response.Package);
         }
-
 
         private static void NotifyClientWithPackage(Socket client, string resPackage)
         {
@@ -772,7 +779,7 @@ namespace ServerMessenger
 
         private static bool ClientIsConnected(Socket client)
         {
-            return authorizedClients.Any(cli => ClientsAreEquals(cli.Key, client));
+            return authorizedClients.ContainsKey(client);
         }
         private static bool ClientsAreEquals(Socket client1, Socket client2)
         {
