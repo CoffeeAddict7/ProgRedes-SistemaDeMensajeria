@@ -15,7 +15,6 @@ namespace ServerMessenger
         public DateTime SessionBegin { get; set; }
         public ICollection<UserProfile> Friends { get; set; }
         public ICollection<UserProfile> PendingFriendRequest { get; set; }        
-    //    public ICollection<Tuple<DateTime, string>> PendingMessages { get; set; }
         public List<KeyValuePair<UserProfile, Tuple<DateTime,string>>> PendingMessages { get; set; }   
         public Tuple<UserProfile, bool> LiveChatProfile { get; set; }
 
@@ -24,7 +23,6 @@ namespace ServerMessenger
             ValidateAttributesLength(userName, password);
             this.Friends = new List<UserProfile>();
             this.PendingFriendRequest = new List<UserProfile>();
-            //      this.PendingMessages = new List<Tuple<DateTime, string>>();
             this.PendingMessages = new List<KeyValuePair<UserProfile, Tuple<DateTime, string>>>();
             this.UserName = userName;
             this.Password = password;
@@ -39,15 +37,23 @@ namespace ServerMessenger
             var chatMsg = new KeyValuePair<UserProfile, Tuple<DateTime, string>>(sender, chatLog);
             PendingMessages.Add(chatMsg);
         }
+        public List<UserProfile> GetProfilesOfPendingMessages()
+        {
+            return PendingMessages.Select(kvp => kvp.Key).Distinct().ToList();
+        }
+
         public List<Tuple<DateTime,string>> GetPendingMessagesOfFriend(UserProfile sender)
         {
             if (!IsFriendWith(sender))
                 throw new Exception("Error: This user is not your friend");
 
-            var chatLogs = PendingMessages.FindAll(log => log.Key.UserName.Equals(sender));
+            var chatLogs = PendingMessages.FindAll(log => log.Key.UserName.Equals(sender.UserName));
             return chatLogs.Select(kvp => kvp.Value).ToList();      
         }
-
+        public void RemovePendingMessagesOfFriend(UserProfile friend)
+        {
+            PendingMessages.RemoveAll(kvp => kvp.Key.UserName.Equals(friend.UserName));
+        }
         public bool IsOnLiveChat()
         {
             return HasLiveChatProfileSet() && LiveChatProfile.Item2;
@@ -147,5 +153,7 @@ namespace ServerMessenger
         {
             return Friends.Count;
         }
+
+
     }
 }

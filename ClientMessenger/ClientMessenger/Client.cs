@@ -34,6 +34,7 @@ namespace ClientMessenger
         private static void ConnectToServer()
         {
             BeginInteractionWithServer();
+            ShowMenu();
 
             Thread chatMessenger = new Thread(() => ProcessChatMessenger());
             chatMessenger.Start();
@@ -50,6 +51,11 @@ namespace ClientMessenger
                     Console.WriteLine(ex.Message);
                 }
             }
+            CloseSocketsAndStreams();
+        }
+
+        private static void CloseSocketsAndStreams()
+        {
             netStream.Close();
             netStreamMessenger.Close();
             tcpClient.Close();
@@ -66,13 +72,13 @@ namespace ClientMessenger
                 InitializeMessageClientConfiguration();
                 netStream = new NetworkStream(tcpClient);
                 netStreamMessenger = new NetworkStream(tcpMessageClient);
-                ShowMenu();
             }
             catch (Exception)
             {
                 Console.WriteLine(serverErrorMsg);
             }
         }
+
         private static void ProcessChatMessenger()
         {
             try
@@ -91,21 +97,45 @@ namespace ClientMessenger
         {
             try
             {
-                dataReadMessenger = new Byte[9999];
-                String responseData = String.Empty;
-                Int32 bytes = netStreamMessenger.Read(dataReadMessenger, 0, dataReadMessenger.Length);
-                var package = Encoding.ASCII.GetString(dataReadMessenger, 0, bytes);
-                ChatProtocol protocol = new ChatProtocol(package);
+                ChatProtocol protocol = ReadFromMessengerClientAndGetProtocol();
+
                 string[] packageState = protocol.Payload.Split('$');
                 string[] messageInfo = packageState[1].Split('#');
-                Console.WriteLine(">" + messageInfo[2]);
+                if(messageInfo.Length >= 2)
+                {
+                    string user = messageInfo[0];
+                    string chatType = messageInfo[1];
+                    string chatMessage = messageInfo[2];
+                    if (chatMessage.Equals(ChatData.BEGIN_LIVECHAT) || chatMessage.Equals(ChatData.ENDED_LIVECHAT))
+                        Console.WriteLine("> " + chatMessage);
+                    else
+                        Console.WriteLine(user + "> " + chatMessage);
+
+                    if (chatType.Equals(ChatData.LIVECHAT_END))
+                    {
+                        liveChatting = false;
+                        liveChatUser = "";
+                    }
+                }else
+                {
+                    Console.WriteLine(messageInfo[0]);
+                }
+                
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 ServerConnectionLost();
             }
         }
-        
+
+        private static ChatProtocol ReadFromMessengerClientAndGetProtocol()
+        {
+            dataReadMessenger = new Byte[9999];
+            String responseData = String.Empty;
+            Int32 bytes = netStreamMessenger.Read(dataReadMessenger, 0, dataReadMessenger.Length);
+            var package = Encoding.ASCII.GetString(dataReadMessenger, 0, bytes);
+            return new ChatProtocol(package);    
+        }
 
         private static void ServerConnectionLost()
         {
@@ -131,7 +161,7 @@ namespace ClientMessenger
                 ProcessResponse(package);
                 
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 ServerConnectionLost();
             }            
@@ -188,6 +218,12 @@ namespace ClientMessenger
                 case 8:
                     ShowLiveChat(data);
                     break;
+                case 9:
+                    if (data.Equals(ChatData.UNSEEN_MESSAGES))
+                        Console.WriteLine(data);
+                    else
+                        ShowUserList(data, "You have no pending messages to read", "Friends that left you messages:");
+                    break;                 
                 case 99:
                     connected = false;
                     Console.WriteLine("> {Server closed connection} ");
@@ -271,7 +307,8 @@ namespace ClientMessenger
         private static void ShowMenu()
         {
             Console.WriteLine("[00] Logout\n" + "[01] Login\n" + "[02] Register & Login\n" + "[03] Online users\n" +
-                "[04] Friend list\n" + "[05] Send friend request\n" + "[06] Pending friend requests\n" + "[07] Reply to friend requests\n" + "[08] Chat with friend");
+                "[04] Friend list\n" + "[05] Send friend request\n" + "[06] Pending friend requests\n" +
+                "[07] Reply to friend requests\n" + "[08] Chat with friend\n" + "[09] Unread messages");
             displayMenu = false;
         }
 
@@ -339,8 +376,6 @@ namespace ClientMessenger
             var clientEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 0);           
             tcpMessageClient.Bind(clientEndPoint);            
             tcpMessageClient.Connect(ChatData.SERVER_IP_END_POINT);
-
-            Console.WriteLine("Messanger connected");
         }
     }
 }
