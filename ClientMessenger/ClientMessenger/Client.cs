@@ -73,21 +73,23 @@ namespace ClientMessenger
  
             try
             {
+                /*
                 var sb = new StringBuilder();
                 int packageLength = chatManager.ReadFixedBytesFromPackage(tcpClient, reader, ref sb);
                 chatManager.ReadPayloadBytesFromPackage(tcpClient, reader, ref sb, packageLength);
-                var package = sb.ToString();
-                ChatProtocol chatMsg = new ChatProtocol(package);
-                /*
-                dataRead = new Byte[256];
+                var package = sb.ToString();*/
+                
+                dataRead = new Byte[9999];
                 String responseData = String.Empty;
                 Int32 bytes = netStream.Read(dataRead, 0, dataRead.Length);
-                var package = Encoding.ASCII.GetString(dataRead, 0, bytes);    
-                */
+                var package = Encoding.ASCII.GetString(dataRead, 0, bytes);
+                
                 ProcessResponse(package);
+                
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine(ex.Message);
                 ServerConnectionLost();
             }            
         }
@@ -167,9 +169,11 @@ namespace ClientMessenger
                 {
                     liveChatting = true;
                     liveChatUser = message[0];
-                    Console.WriteLine("> " + message[2]); 
                 }
-            }else
+                if(!message[2].Equals(String.Empty))
+                    Console.WriteLine("> " + message[2]);
+            }
+            else
             {
                 Console.WriteLine("> " + data);
             }
@@ -237,22 +241,28 @@ namespace ClientMessenger
 
         private static ChatProtocol MakeChatProtocolRequest(string message)
         {
-            ChatProtocol request;
+            ChatProtocol request; 
             if (liveChatting)
             {
                 string[] chatModeMsg = message.Split('#');
                 string recieverUserProfile = liveChatUser;
+                string command = ChatData.CMD_LIVECHAT;
                 string chatState = ChatData.LIVECHAT_CHAT;
                 string msg = message;
                 if(chatModeMsg.Length > 1)
                 {
-                    recieverUserProfile = chatModeMsg[0];
+                    if(chatModeMsg[0].Length > 2)
+                    {
+                        command = new String(chatModeMsg[0].Take(2).ToArray());
+                        recieverUserProfile = new String(chatModeMsg[0].Skip(2).Take(chatModeMsg[0].Length - 2).ToArray());
+                    }
                     chatState = chatModeMsg[1];
                     msg = "";
                 }
+                if (!command.Equals(ChatData.CMD_LIVECHAT))
+                    throw new Exception("Error: Close chat before using other commands");
                 request = chatManager.CreateLiveChatRequestProtocol(recieverUserProfile, chatState, msg);
-            }
-            else
+            }else
                 request = chatManager.CreateRequestProtocolFromInput(message);
             return request;
         }

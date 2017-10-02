@@ -117,7 +117,7 @@ namespace MessengerDomain
                 }
                 else
                 {
-                    EndConnection(client);
+                  //  EndConnection(client);
                 }
             }
             return packageLength;
