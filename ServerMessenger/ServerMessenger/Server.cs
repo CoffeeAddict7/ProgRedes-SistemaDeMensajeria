@@ -14,7 +14,7 @@ namespace ServerMessenger
         private static bool acceptingConnections;
         private static Dictionary<Socket, Thread> activeClientThreads;
         private static Socket tcpServer;
-        private static ProtocolManager chatManager;
+        private static ProtocolManager protManager;
         private static List<UserProfile> storedUserProfiles;
         private static Dictionary<Socket,UserProfile> authorizedClients;
         private static List<KeyValuePair<Socket, Socket>> clientAndMessenger;
@@ -87,7 +87,7 @@ namespace ServerMessenger
                 acceptingConnections = true;
                 activeClientThreads = new Dictionary<Socket, Thread>();
                 clientAndMessenger = new List<KeyValuePair<Socket, Socket>>();
-                chatManager = new ProtocolManager();
+                protManager = new ProtocolManager();
                 tcpServer = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 tcpServer.Bind(ChatData.SERVER_IP_END_POINT);
                 tcpServer.Listen(ChatData.MAX_ACTIVE_CONN);
@@ -136,7 +136,7 @@ namespace ServerMessenger
             acceptingConnections = false;
             foreach (KeyValuePair<Socket, Thread> entry in activeClientThreads)
             {
-                ChatProtocol closeConnectionResponse = chatManager.CreateResponseOkProtocol("99");
+                ChatProtocol closeConnectionResponse = protManager.CreateResponseOkProtocol("99");
                 EndClientConnection(entry.Key);
             }
             activeClientThreads = new Dictionary<Socket, Thread>();
@@ -151,8 +151,8 @@ namespace ServerMessenger
                 while (acceptingConnections)
                 {
                     var sb = new StringBuilder();
-                    int packageLength = chatManager.ReadFixedBytesFromPackage(client, reader, ref sb);
-                    chatManager.ReadPayloadBytesFromPackage(client, reader, ref sb, packageLength);
+                    int packageLength = protManager.ReadFixedBytesFromPackage(client, reader, ref sb);
+                    protManager.ReadPayloadBytesFromPackage(client, reader, ref sb, packageLength);
                     var package = sb.ToString();
                     ChatProtocol chatMsg = new ChatProtocol(package);
                     ProcessMessage(client, chatMsg);
@@ -172,8 +172,8 @@ namespace ServerMessenger
             Socket clientMessenger = GetClientMessengerSocket(client);
             authorizedClients.Remove(client);
             clientAndMessenger.Remove(new KeyValuePair<Socket, Socket>(client, clientMessenger));            
-            chatManager.EndConnection(client);
-            chatManager.EndConnection(clientMessenger);
+            protManager.EndConnection(client);
+            protManager.EndConnection(clientMessenger);
         }
 
         private static void NotifyIfHasChattingFriend(Socket client)
@@ -211,7 +211,7 @@ namespace ServerMessenger
             }
             catch (Exception ex)
             {
-                ChatProtocol response = chatManager.CreateResponseErrorProtocol(chatMsg.Command, ex.Message);
+                ChatProtocol response = protManager.CreateResponseErrorProtocol(chatMsg.Command, ex.Message);
                 NotifyClientWithPackage(client, response.Package);
             }
             Console.WriteLine("Response to: [" + client.RemoteEndPoint + "] of CMD [" + chatMsg.Command + "]");
@@ -289,7 +289,7 @@ namespace ServerMessenger
                     responseMessage += "#";
             }
 
-            ChatProtocol response = chatManager.CreateUnseenMessagesResponseProtocol(ChatData.PENDING_MSGS_PROFILE_MSGS, responseMessage);
+            ChatProtocol response = protManager.CreateUnseenMessagesResponseProtocol(ChatData.PENDING_MSGS_PROFILE_MSGS, responseMessage);
             NotifyClientWithPackage(client, response.Package);
             profile.RemovePendingMessagesOfFriend(friendWithMessages);
         }
@@ -304,7 +304,7 @@ namespace ServerMessenger
                 if (!profilesWithMessages.Last().Equals(msg))
                     payload += "#";
             }
-            ChatProtocol response = chatManager.CreateUnseenMessagesResponseProtocol(ChatData.PENDING_MSGS_USERS, payload);
+            ChatProtocol response = protManager.CreateUnseenMessagesResponseProtocol(ChatData.PENDING_MSGS_USERS, payload);
             NotifyClientWithPackage(client, response.Package);
         }
 
@@ -346,10 +346,12 @@ namespace ServerMessenger
         {
             Socket recieverClient = GetAuthorizedClientFromProfile(recieverProf);
             senderProf.UnSetLiveChatProfile();
-            recieverProf.UnSetLiveChatProfile();
-            ChatProtocol response = chatManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_END, ChatData.ENDED_LIVECHAT);
+            ChatProtocol response = protManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_END, ChatData.ENDED_LIVECHAT);
             NotifyClientWithPackage(client, response.Package);
-            SearchAndSendLiveChatMessage(recieverClient, ChatData.LIVECHAT_END, senderProf.UserName, ChatData.ENDED_LIVECHAT);
+            if (ProfilesAreEquals(recieverProf.PendingLiveChatProfile(), senderProf)){
+                recieverProf.UnSetLiveChatProfile();
+                SearchAndSendLiveChatMessage(recieverClient, ChatData.LIVECHAT_END, senderProf.UserName, ChatData.ENDED_LIVECHAT);
+            }            
         }
 
         private static Socket GetAuthorizedClientFromProfile(UserProfile profile)
@@ -381,28 +383,28 @@ namespace ServerMessenger
         private static void ApplyWaitingOrCancelOnBusyClient(Socket client, UserProfile senderProf, UserProfile recieverProf)
         {
             senderProf.SetLiveChatProfile(recieverProf, false);
-            ChatProtocol senderResponse = chatManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, recieverProf.UserName + " is chatting with other user. Wait or cancel chat mode");
+            ChatProtocol senderResponse = protManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, recieverProf.UserName + " is chatting with other user. Wait or cancel chat mode");
             NotifyClientWithPackage(client, senderResponse.Package);
         }
 
         private static void SetLiveChatProfileAndWaitForClient(Socket client, UserProfile senderProf, UserProfile recieverProf)
         {
             senderProf.SetLiveChatProfile(recieverProf, false);
-            ChatProtocol senderResponse = chatManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, "Waiting for: " + recieverProf.UserName + " to chat with you...");
+            ChatProtocol senderResponse = protManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, "Waiting for: " + recieverProf.UserName + " to chat with you...");
             NotifyClientWithPackage(client, senderResponse.Package);
         }
 
         private static void ApplyLiveChatMessage(Socket client, string chatMessage, UserProfile senderProf, UserProfile recieverProf, Socket recieverClient)
         {
             SearchAndSendLiveChatMessage(recieverClient, ChatData.LIVECHAT_CHAT, senderProf.UserName, chatMessage);
-            ChatProtocol senderResponse = chatManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, "");
+            ChatProtocol senderResponse = protManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, "");
             NotifyClientWithPackage(client, senderResponse.Package);
         }
 
         private static void SearchAndSendLiveChatMessage(Socket recieverClient, string messageType, string sender, string message)
         {
             Socket messengerClient = GetClientMessengerSocket(recieverClient);
-            ChatProtocol response = chatManager.CreateLiveChatResponseProtocol(sender, messageType, message);
+            ChatProtocol response = protManager.CreateLiveChatResponseProtocol(sender, messageType, message);
             NotifyClientWithPackage(messengerClient, response.Package);
         }
 
@@ -413,14 +415,14 @@ namespace ServerMessenger
 
             Socket recieverMessenger = GetClientMessengerSocket(recieverClient);
             SearchAndSendLiveChatMessage(recieverClient, ChatData.LIVECHAT_CHAT, senderProf.UserName, ChatData.BEGIN_LIVECHAT);
-            ChatProtocol senderResponse = chatManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, ChatData.BEGIN_LIVECHAT);
+            ChatProtocol senderResponse = protManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, ChatData.BEGIN_LIVECHAT);
             NotifyClientWithPackage(client, senderResponse.Package);
         }
 
         private static void EndOfflineChat(Socket client, UserProfile senderProf, UserProfile recieverProf)
         {
             senderProf.UnSetLiveChatProfile();
-            ChatProtocol response = chatManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_END, ChatData.ENDED_LIVECHAT);
+            ChatProtocol response = protManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_END, ChatData.ENDED_LIVECHAT);
             NotifyClientWithPackage(client, response.Package);
         }
 
@@ -443,14 +445,14 @@ namespace ServerMessenger
         private static void SaveChatLogForOfflineUser(Socket client, string chatMessage, UserProfile senderProf, UserProfile recieverProf)
         {
             recieverProf.AddPendingMessage(senderProf, chatMessage);
-            ChatProtocol response = chatManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, "");
+            ChatProtocol response = protManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, "");
             NotifyClientWithPackage(client, response.Package);
         }
 
         private static void BeginOfflineChat(Socket client, UserProfile senderProf, UserProfile recieverProf)
         {
             senderProf.SetLiveChatProfile(recieverProf, false);
-            ChatProtocol response = chatManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, "Begin chat... He will recieve your messages when he connects");
+            ChatProtocol response = protManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, "Begin chat... He will recieve your messages when he connects");
             NotifyClientWithPackage(client, response.Package);
         }
 
@@ -486,7 +488,7 @@ namespace ServerMessenger
             clientProfile.ReplyFriendRequest(profileToReply, accept);
             if (accept)
                 profileToReply.AddFriend(clientProfile);
-            ChatProtocol response = chatManager.CreateResponseOkProtocol(protocol.Command);
+            ChatProtocol response = protManager.CreateResponseOkProtocol(protocol.Command);
             NotifyClientWithPackage(client, response.Package);
         }
 
@@ -520,7 +522,7 @@ namespace ServerMessenger
         {
             ValidatePendingFRViewInformation(client, protocol);
             string payload = GeneratePendingFriendRequestsPayload(client);
-            ChatProtocol response = chatManager.CreateResponseOkProtocol(protocol.Command, payload);
+            ChatProtocol response = protManager.CreateResponseOkProtocol(protocol.Command, payload);
             NotifyClientWithPackage(client, response.Package);
         }
 
@@ -558,8 +560,11 @@ namespace ServerMessenger
             UserProfile sender = GetProfileConnectedToClient(client);
             UserProfile reciever = GetStoredUserProfile(userNameRequest);
             ApplyFriendRequest(sender, reciever);
-
-            ChatProtocol responseProtocol = chatManager.CreateResponseOkProtocol(protocol.Command);
+            ChatProtocol responseProtocol;
+            if (sender.IsFriendWith(reciever))
+                responseProtocol = protManager.CreateResponseOkProtocol(protocol.Command, "Now friends with " + reciever.UserName);
+            else
+                responseProtocol = protManager.CreateResponseOkProtocol(protocol.Command);
             NotifyClientWithPackage(client, responseProtocol.Package);
         }
         private static UserProfile GetStoredUserProfile(string username)
@@ -603,7 +608,7 @@ namespace ServerMessenger
         {
             ValidateFriendListInformation(client, protocol);
             string payload = GenerateFriendListPayload(client);
-            ChatProtocol responseProtocol = chatManager.CreateResponseOkProtocol(protocol.Command, payload);
+            ChatProtocol responseProtocol = protManager.CreateResponseOkProtocol(protocol.Command, payload);
             NotifyClientWithPackage(client, responseProtocol.Package);
         }
 
@@ -637,7 +642,7 @@ namespace ServerMessenger
         {
             ValidateOnlineUsersInformation(client, protocol);
             string payload = GenerateConnectedUsersPayload(client);
-            ChatProtocol responseProtocol = chatManager.CreateResponseOkProtocol(protocol.Command, payload);
+            ChatProtocol responseProtocol = protManager.CreateResponseOkProtocol(protocol.Command, payload);
             NotifyClientWithPackage(client, responseProtocol.Package);
         }
 
@@ -687,7 +692,7 @@ namespace ServerMessenger
         {
             LogoutVerification(client, protocol);
             authorizedClients.Remove(client);
-            ChatProtocol response = chatManager.CreateResponseOkProtocol(protocol.Command);
+            ChatProtocol response = protManager.CreateResponseOkProtocol(protocol.Command);
             NotifyClientWithPackage(client, response.Package);
         }
 
@@ -715,7 +720,7 @@ namespace ServerMessenger
                 throw new Exception("Error: Profile username already registered");
 
             CreateProfileAndLogin(client, user, password);
-            ChatProtocol response = chatManager.CreateResponseOkProtocol(protocol.Command);
+            ChatProtocol response = protManager.CreateResponseOkProtocol(protocol.Command);
             NotifyClientWithPackage(client, response.Package);           
         }
 
@@ -754,7 +759,7 @@ namespace ServerMessenger
         {
             LoginVerification(client, user);            
             LoginClientAsUserProfile(client, user, password);
-            ChatProtocol response = chatManager.CreateResponseOkProtocol(protocol.Command);
+            ChatProtocol response = protManager.CreateResponseOkProtocol(protocol.Command);
             NotifyClientWithPackage(client, response.Package);
         }
 

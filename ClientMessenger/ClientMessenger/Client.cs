@@ -194,6 +194,8 @@ namespace ClientMessenger
                     break;
                 case 5:
                     Console.WriteLine("> Request sent!");
+                    if (!data.Equals(String.Empty))
+                        Console.WriteLine("> " + data);
                     break;
                 case 6:
                     ShowUserList(data,"You have no pending friend requests", "Friend requests:");
@@ -333,6 +335,10 @@ namespace ClientMessenger
                     }
                     chatState = chatModeMsg[1];
                     msg = "";
+                }else
+                {
+                    if (msg.Equals(String.Empty) || msg.Contains("#") || msg.Contains("_"))
+                        throw new Exception("> Error: chat messages cant be empty or contain # or _");
                 }
                 if (!command.Equals(ChatData.CMD_LIVECHAT))
                     throw new Exception("Error: Close chat before using other commands");

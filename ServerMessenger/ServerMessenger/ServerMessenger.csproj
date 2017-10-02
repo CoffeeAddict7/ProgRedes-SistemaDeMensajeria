@@ -58,9 +58,9 @@
       <Project>{3156aa2a-0732-4bbc-a130-993afc8b1384}</Project>
       <Name>ClientMessenger</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\ClientMessenger\MessengerDomain\MessengerDomain.csproj">
+    <ProjectReference Include="..\..\ClientMessenger\MessengerDomain\ProtocolDomain.csproj">
       <Project>{8ad99637-1d38-4973-bbfb-e714c90ae5b5}</Project>
-      <Name>MessengerDomain</Name>
+      <Name>ProtocolDomain</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

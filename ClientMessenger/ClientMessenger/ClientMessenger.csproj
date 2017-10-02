@@ -59,9 +59,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\MessengerDomain\MessengerDomain.csproj">
+    <ProjectReference Include="..\MessengerDomain\ProtocolDomain.csproj">
       <Project>{8ad99637-1d38-4973-bbfb-e714c90ae5b5}</Project>
-      <Name>MessengerDomain</Name>
+      <Name>ProtocolDomain</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
