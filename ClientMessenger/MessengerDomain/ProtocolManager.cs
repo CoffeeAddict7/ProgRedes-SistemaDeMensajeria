@@ -55,6 +55,11 @@ namespace MessengerDomain
             string package = BuildPackage(ChatData.RESPONSE_HEADER, cmd, ChatData.RESPONSE_OK + "$" + payload);
             return new ChatProtocol(package);
         }
+        public ChatProtocol CreateUnseenMessagesResponseProtocol(string type, string payload)
+        {
+            string package = BuildPackage(ChatData.REQUEST_HEADER, ChatData.CMD_UNSEEN_MSGS, ChatData.RESPONSE_OK + "$" + type + "#" + payload);
+            return new ChatProtocol(package);
+        }
 
         public ChatProtocol CreateLiveChatResponseProtocol(string profile, string chatState, string message)
         {

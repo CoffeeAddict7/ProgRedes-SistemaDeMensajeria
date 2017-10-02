@@ -97,34 +97,32 @@ namespace ClientMessenger
         {
             try
             {
-                ChatProtocol protocol = ReadFromMessengerClientAndGetProtocol();
-
+                ChatProtocol protocol = ReadFromMessengerClientAndGetProtocol();            
                 string[] packageState = protocol.Payload.Split('$');
                 string[] messageInfo = packageState[1].Split('#');
-                if(messageInfo.Length >= 2)
-                {
-                    string user = messageInfo[0];
-                    string chatType = messageInfo[1];
-                    string chatMessage = messageInfo[2];
-                    if (chatMessage.Equals(ChatData.BEGIN_LIVECHAT) || chatMessage.Equals(ChatData.ENDED_LIVECHAT))
-                        Console.WriteLine("> " + chatMessage);
-                    else
-                        Console.WriteLine(user + "> " + chatMessage);
-
-                    if (chatType.Equals(ChatData.LIVECHAT_END))
-                    {
-                        liveChatting = false;
-                        liveChatUser = "";
-                    }
-                }else
-                {
-                    Console.WriteLine(messageInfo[0]);
-                }
-                
+                if(messageInfo.Length >= 2)                
+                    ShowLiveChatMessage(messageInfo);                
             }
             catch (Exception)
             {
                 ServerConnectionLost();
+            }
+        }
+
+        private static void ShowLiveChatMessage(string[] messageInfo)
+        {
+            string user = messageInfo[0];
+            string chatType = messageInfo[1];
+            string chatMessage = messageInfo[2];
+            if (chatMessage.Equals(ChatData.BEGIN_LIVECHAT) || chatMessage.Equals(ChatData.ENDED_LIVECHAT))
+                Console.WriteLine("> " + chatMessage);
+            else
+                Console.WriteLine(user + "> " + chatMessage);
+
+            if (chatType.Equals(ChatData.LIVECHAT_END))
+            {
+                liveChatting = false;
+                liveChatUser = "";
             }
         }
 
@@ -219,11 +217,8 @@ namespace ClientMessenger
                     ShowLiveChat(data);
                     break;
                 case 9:
-                    if (data.Equals(ChatData.UNSEEN_MESSAGES))
-                        Console.WriteLine(data);
-                    else
-                        ShowUserList(data, "You have no pending messages to read", "Friends that left you messages:");
-                    break;                 
+                    ShowPendingMessages(data);
+                    break;
                 case 99:
                     connected = false;
                     Console.WriteLine("> {Server closed connection} ");
@@ -231,6 +226,21 @@ namespace ClientMessenger
                 default:
                     Console.WriteLine("> Response not implemented");
                     break;
+            }
+        }
+
+        private static void ShowPendingMessages(string data)
+        {
+            string[] messageInfo = data.Split('#');
+            string type = messageInfo[0];
+            if (type.Equals(ChatData.PENDING_MSGS_USERS))
+                ShowUserList(messageInfo[1], "You have no pending messages to read", "Friends that left you messages:");
+            else
+            {
+                for (int i = 1; i < messageInfo.Length; i++)                
+                    Console.WriteLine(messageInfo[i]);
+                
+                Console.WriteLine(ChatData.UNSEEN_MESSAGES);
             }
         }
 

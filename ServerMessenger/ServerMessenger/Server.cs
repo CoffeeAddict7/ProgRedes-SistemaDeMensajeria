@@ -144,18 +144,22 @@ namespace ServerMessenger
 
         private static void NotifyIfHasChattingFriend(Socket client)
         {
-            UserProfile profile = authorizedClients.First(auth => ClientsAreEquals(auth.Key, client)).Value;
-            if (profile.HasLiveChatProfileSet())
+            try
             {
-                UserProfile chattingFriend = profile.LiveChatProfile.Item1;
-                if (profile.IsOnLiveChat())
+                UserProfile profile = authorizedClients.First(auth => ClientsAreEquals(auth.Key, client)).Value;
+                if (profile.HasLiveChatProfileSet())
                 {
-                    Socket clientReciever = GetAuthorizedClientFromProfile(chattingFriend);
-                    SearchAndSendLiveChatMessage(clientReciever, ChatData.LIVECHAT_END, profile.UserName, ChatData.ENDED_LIVECHAT);
-                    chattingFriend.UnSetLiveChatProfile();                    
+                    UserProfile chattingFriend = profile.LiveChatProfile.Item1;
+                    if (profile.IsOnLiveChat())
+                    {
+                        Socket clientReciever = GetAuthorizedClientFromProfile(chattingFriend);
+                        SearchAndSendLiveChatMessage(clientReciever, ChatData.LIVECHAT_END, profile.UserName, ChatData.ENDED_LIVECHAT);
+                        chattingFriend.UnSetLiveChatProfile();
+                    }
+                    profile.UnSetLiveChatProfile();
                 }
-                profile.UnSetLiveChatProfile();
             }
+            catch (Exception) { }            
         }
 
         private static Socket GetClientMessengerSocket(Socket client)
@@ -239,24 +243,33 @@ namespace ServerMessenger
             {
                 if (!ProfileUserNameExists(profileForReading))
                     throw new Exception("Error: Profile doesn't exists");
-                UserProfile friendWithMessages = storedUserProfiles.Find(p => p.UserName.Equals(profileForReading));
-
-                var messages = profile.GetPendingMessagesOfFriend(friendWithMessages);
-                Socket messengerClient = GetClientMessengerSocket(client);
-                foreach (var chatLog in messages)
-                {
-                    ChatProtocol messageProtocol = chatManager.CreateResponseOkProtocol(chatMsg.Command, "["+chatLog.Item1+"] " + chatLog.Item2);
-                    NotifyClientWithPackage(messengerClient, messageProtocol.Package);
-                }
-
-                ChatProtocol response = chatManager.CreateResponseOkProtocol(chatMsg.Command, ChatData.UNSEEN_MESSAGES);
-                NotifyClientWithPackage(client, response.Package);
-                profile.RemovePendingMessagesOfFriend(friendWithMessages);
+                RespondWithPendingMessagesFromProfile(client, profile, profileForReading);
             }
             else
             {
                 RespondWithProfilesOfPendingMessages(client, chatMsg, profile);
             }
+        }
+
+        private static void RespondWithPendingMessagesFromProfile(Socket client, UserProfile profile, string profileForReading)
+        {
+            UserProfile friendWithMessages = storedUserProfiles.Find(p => p.UserName.Equals(profileForReading));
+            var messages = profile.GetPendingMessagesOfFriend(friendWithMessages);
+
+            if (messages.Count == 0)
+                throw new Exception("Error: That user didnt left you messages");
+
+            var responseMessage = "";
+            foreach (var chatLog in messages)
+            {
+                responseMessage += "[" + chatLog.Item1 + "] " + chatLog.Item2;
+                if (!messages.Last().Equals(chatLog))
+                    responseMessage += "#";
+            }
+
+            ChatProtocol response = chatManager.CreateUnseenMessagesResponseProtocol(ChatData.PENDING_MSGS_PROFILE_MSGS, responseMessage);
+            NotifyClientWithPackage(client, response.Package);
+            profile.RemovePendingMessagesOfFriend(friendWithMessages);
         }
 
         private static void RespondWithProfilesOfPendingMessages(Socket client, ChatProtocol chatMsg, UserProfile profile)
@@ -269,7 +282,7 @@ namespace ServerMessenger
                 if (!IndexIsPenultimate(profilesWithMessages.Count(), i))
                     payload += "#";
             }
-            ChatProtocol response = chatManager.CreateResponseOkProtocol(chatMsg.Command, payload);
+            ChatProtocol response = chatManager.CreateUnseenMessagesResponseProtocol(ChatData.PENDING_MSGS_USERS, payload);
             NotifyClientWithPackage(client, response.Package);
         }
 
