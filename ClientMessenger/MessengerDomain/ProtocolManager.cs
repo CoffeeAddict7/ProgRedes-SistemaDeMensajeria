@@ -32,6 +32,8 @@ namespace MessengerDomain
             payload = new String(message.Skip(2).Take(message.Length - 2).ToArray());
             if (!Int32.TryParse(command, out cmd))
                 throw new Exception("Error: Server request must be preceded by a numeric command");
+            if (cmd < 0)
+                throw new Exception("Error: Command cant be negative");
 
             return CreateRequestProtocol(command, payload);
         }

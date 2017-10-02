@@ -6,14 +6,18 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 
 namespace ClientMessenger
 {
     public class Client
     {
         private static Socket tcpClient;
+        private static Socket tcpMessageClient;
         private static NetworkStream netStream;
+        private static NetworkStream netStreamMessenger;
         private static Byte[] dataRead;
+        private static Byte[] dataReadMessenger;
         private static Byte[] dataWrite;
         private static ProtocolManager chatManager;
         private static string serverErrorMsg = "Server disconnected. Unable to establish connection";
@@ -31,6 +35,9 @@ namespace ClientMessenger
         {
             BeginInteractionWithServer();
 
+            Thread chatMessenger = new Thread(() => ProcessChatMessenger());
+            chatMessenger.Start();
+
             while (connected)
             {
                 try
@@ -44,7 +51,9 @@ namespace ClientMessenger
                 }
             }
             netStream.Close();
+            netStreamMessenger.Close();
             tcpClient.Close();
+            tcpMessageClient.Close();
             Console.Read();
         }
 
@@ -52,8 +61,11 @@ namespace ClientMessenger
         {
             try
             {
+                chatManager = new ProtocolManager();
                 InitializeClientConfiguration();
+                InitializeMessageClientConfiguration();
                 netStream = new NetworkStream(tcpClient);
+                netStreamMessenger = new NetworkStream(tcpMessageClient);
                 ShowMenu();
             }
             catch (Exception)
@@ -61,6 +73,40 @@ namespace ClientMessenger
                 Console.WriteLine(serverErrorMsg);
             }
         }
+        private static void ProcessChatMessenger()
+        {
+            try
+            {
+                while (connected)
+                {
+                    ReceiveMessagesFromServer();
+                }
+            }catch(Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+                     
+        }
+
+        private static void ReceiveMessagesFromServer()
+        {
+            try
+            {
+                dataReadMessenger = new Byte[9999];
+                String responseData = String.Empty;
+                Int32 bytes = netStreamMessenger.Read(dataReadMessenger, 0, dataReadMessenger.Length);
+                var package = Encoding.ASCII.GetString(dataReadMessenger, 0, bytes);
+                ChatProtocol protocol = new ChatProtocol(package);
+                string[] packageState = protocol.Payload.Split('$');
+                string[] messageInfo = packageState[1].Split('#');
+                Console.WriteLine(">" + messageInfo[2]);
+            }
+            catch (Exception ex)
+            {
+                ServerConnectionLost();
+            }
+        }
+        
 
         private static void ServerConnectionLost()
         {
@@ -69,8 +115,7 @@ namespace ClientMessenger
 
         private static void ReceiveResponseFromServer()
         {
-            StreamReader reader = new StreamReader(netStream); //Si no anda subirlo
- 
+            StreamReader reader = new StreamReader(netStream);
             try
             {
                 /*
@@ -233,7 +278,7 @@ namespace ClientMessenger
         }
 
         private static void SendRequestToServer()
-        {
+        {            
             String message = Console.ReadLine();
             ChatProtocol request = MakeChatProtocolRequest(message);
             SendPackage(request);
@@ -283,13 +328,21 @@ namespace ClientMessenger
 
         private static void InitializeClientConfiguration()
         {
-            tcpClient = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            chatManager = new ProtocolManager();
+            tcpClient = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);            
             var clientEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 0);
-            tcpClient.Bind(clientEndPoint);
-            Console.WriteLine("Connecting to server...");
-            tcpClient.Connect(ChatData.SERVER_IP_END_POINT);
+            tcpClient.Bind(clientEndPoint);            
+            tcpClient.Connect(ChatData.SERVER_IP_END_POINT);      
+                  
             Console.WriteLine("Connected to server");
+        }
+        private static void InitializeMessageClientConfiguration()
+        {
+            tcpMessageClient = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            var clientEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 0);           
+            tcpMessageClient.Bind(clientEndPoint);            
+            tcpMessageClient.Connect(ChatData.SERVER_IP_END_POINT);
+
+            Console.WriteLine("Messanger connected");
         }
     }
 }

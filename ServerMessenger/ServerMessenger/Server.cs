@@ -17,12 +17,23 @@ namespace ServerMessenger
         private static ProtocolManager chatManager;
         private static List<UserProfile> storedUserProfiles;
         private static Dictionary<Socket,UserProfile> authorizedClients;
+        private static List<KeyValuePair<Socket, Socket>> clientAndMessanger;
 
         static void Main(string[] args)
         {
-            LoadPersistenceStructures();
-            LoadUserProfiles();
-            StartServer();
+            try
+            {
+                LoadPersistenceStructures();
+                LoadUserProfiles();
+                StartServer();
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                Console.Read();
+
+            }
+         
         }
 
         private static void LoadPersistenceStructures()
@@ -40,6 +51,7 @@ namespace ServerMessenger
             storedUserProfiles.Add(luis);
             storedUserProfiles.Add(jose);
         }
+        static readonly object _lock = new object();
 
         private static void StartServer()
         {        
@@ -48,10 +60,14 @@ namespace ServerMessenger
             while (acceptingConnections) { 
                 try
                 {
-                    var clientSocket = tcpServer.Accept();
+                    Socket clientSocket = tcpServer.Accept();
+                    Socket clientSocketMessenger = tcpServer.Accept();
+                    
                     var thread = new Thread(() => ClientHandler(clientSocket));
                     thread.Start();
+
                     activeClientThreads.Add(clientSocket, thread);
+                    clientAndMessanger.Add(new KeyValuePair<Socket, Socket>(clientSocket, clientSocketMessenger));
                 }
                 catch (Exception ex)
                 {
@@ -68,6 +84,7 @@ namespace ServerMessenger
             {
                 acceptingConnections = true;
                 activeClientThreads = new Dictionary<Socket, Thread>();
+                clientAndMessanger = new List<KeyValuePair<Socket, Socket>>();
                 chatManager = new ProtocolManager();
                 tcpServer = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 tcpServer.Bind(ChatData.SERVER_IP_END_POINT);
@@ -93,7 +110,6 @@ namespace ServerMessenger
             }
             activeClientThreads = new Dictionary<Socket, Thread>();
         }
-        static readonly object _lock = new object();
 
         private static void ClientHandler(Socket client)
         {
@@ -189,7 +205,6 @@ namespace ServerMessenger
 
         private static void ProcessChatModeRequest(Socket client, ChatProtocol chatMsg)
         {
-
             string chatProfile = "";
             string chatType = "";
             string chatMessage = "";
@@ -234,8 +249,7 @@ namespace ServerMessenger
                 {
                     if (recieverProf.IsOnLiveChat())
                     {
-                        ChatProtocol recieverResponse = chatManager.CreateLiveChatResponseProtocol(senderProf.UserName, ChatData.LIVECHAT_CHAT, senderProf.UserName + "> " + chatMessage);
-                        NotifyClientWithPackage(recieverClient, recieverResponse.Package);
+                        SearchAndSendLiveChatMessage(recieverClient, senderProf.UserName, chatMessage);
                         ChatProtocol senderResponse = chatManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, "");
                         NotifyClientWithPackage(client, senderResponse.Package);                     
                     }
@@ -255,17 +269,37 @@ namespace ServerMessenger
                 ChatProtocol senderResponse = chatManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, "Waiting for: " + recieverProf.UserName + " to chat with you...");
                 NotifyClientWithPackage(client, senderResponse.Package);
             }            
-
         }
+        private static void SearchAndSendLiveChatMessage(Socket recieverClient, string sender, string message)
+        {
+            foreach (var el in clientAndMessanger)
+            {
+                var socketMessenger = el.Value;
+                if (el.Key.RemoteEndPoint.Equals(recieverClient.RemoteEndPoint))
+                {
+                    ChatProtocol response = chatManager.CreateLiveChatResponseProtocol(sender, ChatData.LIVECHAT_CHAT, sender + ": " + message);
+                    NotifyClientWithPackage(socketMessenger, response.Package);
+                }
+            }
+        }
+
 
         private static void BeginLiveChatBetweenClients(Socket client, UserProfile senderProf, UserProfile recieverProf, Socket recieverClient)
         {
             senderProf.SetLiveChatProfile(recieverProf, true);
             recieverProf.SetLiveChatProfile(senderProf, true);
+
+            Socket recieverMessenger = clientAndMessanger.Find(kvp => kvp.Key.RemoteEndPoint.Equals(recieverClient.RemoteEndPoint)).Value;
+
+            SearchAndSendLiveChatMessage(recieverClient,senderProf.UserName, "Begin chat...");
+
             ChatProtocol senderResponse = chatManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, "Begin chat...");
-        //    ChatProtocol recieverResponse = chatManager.CreateLiveChatResponseProtocol(senderProf.UserName, ChatData.LIVECHAT_CHAT, "Begin chat...");
-               NotifyClientWithPackage(client, senderResponse.Package);
-           // NotifyClientWithPackage(recieverClient, recieverResponse.Package);
+            NotifyClientWithPackage(client, senderResponse.Package);
+
+            //     ChatProtocol recieverResponse = chatManager.CreateLiveChatResponseProtocol(senderProf.UserName, ChatData.LIVECHAT_CHAT, "Begin chat...");
+            //    NotifyClientWithPackage(recieverMessenger, recieverResponse.Package);
+            //    ChatProtocol recieverResponse = chatManager.CreateLiveChatResponseProtocol(senderProf.UserName, ChatData.LIVECHAT_CHAT, "Begin chat...");
+            // NotifyClientWithPackage(recieverClient, recieverResponse.Package);
         }
 
         private static void EndOfflineChat(Socket client, UserProfile senderProf, UserProfile recieverProf)
@@ -592,7 +626,7 @@ namespace ServerMessenger
             LoginVerification(client, user);            
             LoginClientAsUserProfile(client, user, password);
             ChatProtocol response = chatManager.CreateResponseOkProtocol(protocol.Command);
-            NotifyClientWithPackage(client, response.Package);                               
+            NotifyClientWithPackage(client, response.Package);
         }
 
 
