@@ -55,7 +55,10 @@ namespace ServerMessenger
         private static void StartServer()
         {        
             InitializeServerConfiguration();
-            
+
+            Thread serverCommandReader = new Thread(() => ReadServerCommands());
+            serverCommandReader.Start();
+
             while (acceptingConnections) { 
                 try
                 {
@@ -97,6 +100,37 @@ namespace ServerMessenger
             }
         }
 
+        private static void ReadServerCommands()
+        {
+            while (acceptingConnections)
+            {
+                string command = Console.ReadLine();
+                ApplyServerCommand(command);
+            }            
+        }
+
+        private static void ApplyServerCommand(string command)
+        {
+            if (command.Equals("EXECUTE"))
+            {
+                acceptingConnections = false;
+                Console.WriteLine("> Server will close on next client request");
+            }
+            else if (command.Equals("USERS"))
+            {
+                if (storedUserProfiles.Count > 0)
+                {
+                    foreach (var prof in storedUserProfiles)
+                        Console.WriteLine("- " + prof.UserName + " friends: (" + prof.FriendsAmmount() + ") connections: (" + prof.NumberOfConnections + ")");
+                }
+                else
+                    Console.WriteLine("> No user profiles registered");
+            }
+            else
+                Console.WriteLine("> Wrong command");
+        }
+
+
         private static void CloseServerConnection()
         {
             acceptingConnections = false;
@@ -114,7 +148,7 @@ namespace ServerMessenger
             StreamReader reader = new StreamReader(stream);
             try
             {
-                while (acceptingConnections && !ServerExecuteCommand())
+                while (acceptingConnections)
                 {
                     var sb = new StringBuilder();
                     int packageLength = chatManager.ReadFixedBytesFromPackage(client, reader, ref sb);
@@ -165,17 +199,6 @@ namespace ServerMessenger
         private static Socket GetClientMessengerSocket(Socket client)
         {
             return clientAndMessenger.Find(kvp => kvp.Key.RemoteEndPoint.Equals(client.RemoteEndPoint)).Value;
-        }
-
-        private static bool ServerExecuteCommand()
-        {
-            if(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.X)
-            {
-                Console.WriteLine("X Pressed");
-                acceptingConnections = false;
-                return true;
-            }
-            return false;
         }
 
         private static void ProcessMessage(Socket client, ChatProtocol chatMsg)
