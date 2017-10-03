@@ -19,6 +19,11 @@ namespace ServerMessenger
         private static Dictionary<Socket,UserProfile> authorizedClients;
         private static List<KeyValuePair<Socket, Socket>> clientAndMessenger;
 
+        static readonly object _lockAuthorizedClients = new object();
+        static readonly object _lockClientAndMessenger = new object();
+        static readonly object _lockStoredProfiles = new object();
+        static readonly object _lock = new object();
+
         static void Main(string[] args)
         {
             try
@@ -31,8 +36,7 @@ namespace ServerMessenger
             {
                 Console.WriteLine(ex.Message);
                 Console.Read();
-            }
-         
+            }         
         }
 
         private static void LoadPersistenceStructures()
@@ -50,7 +54,6 @@ namespace ServerMessenger
             storedUserProfiles.Add(luis);
             storedUserProfiles.Add(jose);
         }
-        static readonly object _lock = new object();
 
         private static void StartServer()
         {        
@@ -170,8 +173,8 @@ namespace ServerMessenger
         {
             NotifyIfHasChattingFriend(client);
             Socket clientMessenger = GetClientMessengerSocket(client);
-            authorizedClients.Remove(client);
-            clientAndMessenger.Remove(new KeyValuePair<Socket, Socket>(client, clientMessenger));            
+            lock (_lockAuthorizedClients) authorizedClients.Remove(client);
+            lock(_lockClientAndMessenger) clientAndMessenger.Remove(new KeyValuePair<Socket, Socket>(client, clientMessenger));            
             protManager.EndConnection(client);
             protManager.EndConnection(clientMessenger);
         }
@@ -198,7 +201,7 @@ namespace ServerMessenger
 
         private static Socket GetClientMessengerSocket(Socket client)
         {
-            return clientAndMessenger.Find(kvp => kvp.Key.RemoteEndPoint.Equals(client.RemoteEndPoint)).Value;
+            lock (_lockClientAndMessenger) return clientAndMessenger.Find(kvp => kvp.Key.RemoteEndPoint.Equals(client.RemoteEndPoint)).Value;
         }
 
         private static void ProcessMessage(Socket client, ChatProtocol chatMsg)
@@ -275,7 +278,7 @@ namespace ServerMessenger
 
         private static void RespondWithPendingMessagesFromProfile(Socket client, UserProfile profile, string profileForReading)
         {
-            UserProfile friendWithMessages = storedUserProfiles.Find(p => p.UserName.Equals(profileForReading));
+            UserProfile friendWithMessages = GetStoredUserProfile(profileForReading);
             var messages = profile.GetPendingMessagesOfFriend(friendWithMessages);
 
             if (messages.Count == 0)
@@ -356,12 +359,12 @@ namespace ServerMessenger
 
         private static Socket GetAuthorizedClientFromProfile(UserProfile profile)
         {
-            return authorizedClients.First(auth => ProfilesAreEquals(auth.Value, profile)).Key;
+            lock(_lockAuthorizedClients) return authorizedClients.First(auth => ProfilesAreEquals(auth.Value, profile)).Key;
         }
 
         private static void OnlineChat(Socket client, string chatMessage, UserProfile senderProf, UserProfile recieverProf)
         {
-            Socket recieverClient = authorizedClients.First(auth => ProfilesAreEquals(auth.Value, recieverProf)).Key;
+            Socket recieverClient = GetAuthorizedClientFromProfile(recieverProf);
             ValidateChatModeInformation(client, senderProf, recieverProf);
 
             if (recieverProf.HasLiveChatProfileSet()) 
@@ -569,7 +572,7 @@ namespace ServerMessenger
         }
         private static UserProfile GetStoredUserProfile(string username)
         {
-            return storedUserProfiles.First(prof => prof.UserName.Equals(username));
+           lock(_lockStoredProfiles) return storedUserProfiles.First(prof => prof.UserName.Equals(username));
         }
 
         private static void ValidateFriendRequestInformation(Socket client, string userNameRequest)
@@ -655,14 +658,18 @@ namespace ServerMessenger
         }
         private static UserProfile GetProfileConnectedToClient(Socket client)
         {
-            return authorizedClients.First(auth => ClientsAreEquals(auth.Key, client)).Value;
+           lock(_lockAuthorizedClients) return authorizedClients.First(auth => ClientsAreEquals(auth.Key, client)).Value;
         }
 
         private static string GenerateConnectedUsersPayload(Socket client)
         {
             string connectedUsers = "";
             UserProfile clientProf, profile, lastProfile;
-            var onlineProf = authorizedClients.Select(d => d.Value).ToList();
+            List<UserProfile> onlineProf;
+            lock (_lockAuthorizedClients)
+            {
+                onlineProf = authorizedClients.Select(d => d.Value).ToList();
+            }
             clientProf = GetProfileConnectedToClient(client);
             lastProfile = onlineProf.Last();
             for (int index = 0; index < onlineProf.Count; index++)
@@ -691,7 +698,7 @@ namespace ServerMessenger
         private static void ProcessLogoutRequest(Socket client, ChatProtocol protocol)
         {
             LogoutVerification(client, protocol);
-            authorizedClients.Remove(client);
+            lock(_lockAuthorizedClients) authorizedClients.Remove(client);
             ChatProtocol response = protManager.CreateResponseOkProtocol(protocol.Command);
             NotifyClientWithPackage(client, response.Package);
         }
@@ -727,8 +734,8 @@ namespace ServerMessenger
         private static void CreateProfileAndLogin(Socket client, string user, string password)
         {
             UserProfile profile = new UserProfile(user, password);
-            storedUserProfiles.Add(profile);
-            authorizedClients.Add(client, profile);
+            lock (_lockStoredProfiles) storedUserProfiles.Add(profile);
+            lock (_lockAuthorizedClients) authorizedClients.Add(client, profile);
         }
 
         private static void ProcessLoginRequest(Socket client, ChatProtocol protocol)
@@ -778,13 +785,12 @@ namespace ServerMessenger
             }catch(Exception)
             {
                 Console.WriteLine("Couldn't send response to -> " + client.RemoteEndPoint);
-            }
-           
+            }           
         }
 
         private static bool ClientIsConnected(Socket client)
         {
-            return authorizedClients.ContainsKey(client);
+          lock(_lockAuthorizedClients) return authorizedClients.ContainsKey(client);
         }
         private static bool ClientsAreEquals(Socket client1, Socket client2)
         {
@@ -794,7 +800,7 @@ namespace ServerMessenger
         private static void LoginClientAsUserProfile(Socket client, string user, string password)
         {
             var profile = ExtractProfileFromAttributes(user, password);
-            authorizedClients.Add(client, profile);
+            lock(_lockAuthorizedClients) authorizedClients.Add(client, profile);
             profile.NewConnectionMade();
         }
 
@@ -810,23 +816,18 @@ namespace ServerMessenger
 
         private static bool ProfileIsConnectedToAClient(string user)
         {
-            foreach(var loggedClient in authorizedClients)
-            {
-                var clientProfile = loggedClient.Value;
-                if (clientProfile.UserName.Equals(user))
-                    return true;
-            }
-            return false;
+            lock (_lockAuthorizedClients) return authorizedClients.Any(auth => auth.Value.UserName.Equals(user));
         }
 
         private static bool ProfileUserNameExists(string user)
         {
-            return storedUserProfiles.Exists(us => us.UserName.Equals(user));
+           lock (_lockStoredProfiles) return storedUserProfiles.Exists(us => us.UserName.Equals(user));
         }
 
         private static UserProfile ExtractProfileFromAttributes(string user, string password)
         {
-           var profile = storedUserProfiles.Find(prof => prof.UserName.Equals(user) && prof.Password.Equals(password));
+           UserProfile profile = null;
+           lock( _lockStoredProfiles) profile = storedUserProfiles.Find(prof => prof.UserName.Equals(user) && prof.Password.Equals(password));
            if (profile == null)
                throw new Exception("Error: Incorrect profile password");
            return profile;            
@@ -837,7 +838,6 @@ namespace ServerMessenger
             if (!chatMsg.Header.Equals(ChatData.REQUEST_HEADER))
                 throw new Exception("Error: Wrong client header");
         }
-
     }
 }
 
