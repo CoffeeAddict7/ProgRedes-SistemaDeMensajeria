@@ -13,10 +13,16 @@ namespace ServerMessenger
         public string Password { get; set; }
         public int NumberOfConnections { get; set; }
         public DateTime SessionBegin { get; set; }
-        public ICollection<UserProfile> Friends { get; set; }
-        public ICollection<UserProfile> PendingFriendRequest { get; set; }        
-        public List<KeyValuePair<UserProfile, Tuple<DateTime,string>>> PendingMessages { get; set; }   
-        public Tuple<UserProfile, bool> LiveChatProfile { get; set; }
+
+        static readonly object _lockFriends = new object();
+        static readonly object _lockPendingFriendRequest = new object();
+        static readonly object _lockPendingMessages = new object();
+        static readonly object _lockLiveChatProfile = new object();
+
+        private ICollection<UserProfile> Friends { get; set; }
+        private ICollection<UserProfile> PendingFriendRequest { get; set; }        
+        private List<KeyValuePair<UserProfile, Tuple<DateTime,string>>> PendingMessages { get; set; }   
+        private Tuple<UserProfile, bool> LiveChatProfile { get; set; }      
 
         public UserProfile(string userName, string password)
         {
@@ -35,44 +41,62 @@ namespace ServerMessenger
         {
             var chatLog = new Tuple<DateTime, string>(DateTime.Now, msg);
             var chatMsg = new KeyValuePair<UserProfile, Tuple<DateTime, string>>(sender, chatLog);
-            PendingMessages.Add(chatMsg);
+            lock (_lockPendingMessages) PendingMessages.Add(chatMsg);
         }
         public List<UserProfile> GetProfilesOfPendingMessages()
         {
-            return PendingMessages.Select(kvp => kvp.Key).Distinct().ToList();
+            lock(_lockPendingMessages) return PendingMessages.Select(kvp => kvp.Key).Distinct().ToList();
+        }
+        public ICollection<UserProfile> GetFriends()
+        {
+           lock (_lockFriends) return this.Friends;
+        }
+        public ICollection<UserProfile> GetPendingFriendRequest()
+        {
+            lock (_lockPendingFriendRequest) return this.PendingFriendRequest;
+        }
+        public UserProfile GetLiveChatProfile()
+        {
+            lock (_lockLiveChatProfile) return this.LiveChatProfile.Item1;
         }
 
         public List<Tuple<DateTime,string>> GetPendingMessagesOfFriend(UserProfile sender)
         {
             if (!IsFriendWith(sender))
                 throw new Exception("Error: This user is not your friend");
-
-            var chatLogs = PendingMessages.FindAll(log => log.Key.UserName.Equals(sender.UserName));
+            List<KeyValuePair<UserProfile, Tuple<DateTime, string>>> chatLogs;
+            lock(_lockPendingMessages) chatLogs = PendingMessages.FindAll(log => log.Key.UserName.Equals(sender.UserName));
             return chatLogs.Select(kvp => kvp.Value).ToList();      
         }
         public void RemovePendingMessagesOfFriend(UserProfile friend)
         {
-            PendingMessages.RemoveAll(kvp => kvp.Key.UserName.Equals(friend.UserName));
+            lock (_lockPendingMessages) PendingMessages.RemoveAll(kvp => kvp.Key.UserName.Equals(friend.UserName));
         }
         public bool IsOnLiveChat()
         {
-            return HasLiveChatProfileSet() && LiveChatProfile.Item2;
+            lock (_lockLiveChatProfile)
+            {
+                return HasLiveChatProfileSet() && LiveChatProfile.Item2;
+            }            
         }
         public UserProfile PendingLiveChatProfile()
         {
-            return (HasLiveChatProfileSet()) ? LiveChatProfile.Item1 : null;
+            lock (_lockLiveChatProfile)
+            {
+                return (HasLiveChatProfileSet()) ? LiveChatProfile.Item1 : null;
+            }            
         }
         public bool HasLiveChatProfileSet()
         {
-            return LiveChatProfile != null;
+           lock (_lockLiveChatProfile) return LiveChatProfile != null;
         }
         public void SetLiveChatProfile(UserProfile profile, bool establish)
         {
-            LiveChatProfile = new Tuple<UserProfile, bool>(profile, establish); 
+           lock (_lockLiveChatProfile) LiveChatProfile = new Tuple<UserProfile, bool>(profile, establish); 
         }
         public void UnSetLiveChatProfile()
         {
-            LiveChatProfile = null;
+            lock (_lockLiveChatProfile) LiveChatProfile = null;
         }
         private void ValidateAttributesLength(string userName, string password)
         {
@@ -84,7 +108,6 @@ namespace ServerMessenger
         {
             return attribute != null && (attribute.Length >= ChatData.PROFILE_ATTRIBUTES_MIN_LENGTH);
         }
-
         public void NewConnectionMade()
         {
             this.NumberOfConnections++;
@@ -98,20 +121,20 @@ namespace ServerMessenger
 
         public bool IsFriendWith(UserProfile profile)
         {
-            return this.Friends.Any(friend => friend.UserName.Equals(profile.UserName));
+            lock (_lockFriends) return this.Friends.Any(friend => friend.UserName.Equals(profile.UserName));
         }
         public bool IsFriendWith(string username)
         {
-            return this.Friends.Any(friend => friend.UserName.Equals(username));
+            lock (_lockFriends) return this.Friends.Any(friend => friend.UserName.Equals(username));
         }
         public void AddFriend(UserProfile profile)
         {
-            this.Friends.Add(profile);
+            lock (_lockFriends) this.Friends.Add(profile);
         }
 
         public bool IsFriendRequestedBy(string username)
         {
-            return this.PendingFriendRequest.Any(pending => pending.UserName.Equals(username));
+           lock (_lockPendingFriendRequest) return this.PendingFriendRequest.Any(pending => pending.UserName.Equals(username));
         }
 
         public void AddFriendRequest(UserProfile profile)
@@ -122,7 +145,7 @@ namespace ServerMessenger
             if(IsFriendRequestedBy(profile.UserName))
                 throw new Exception("Error: already sent a friend request to (" +this.UserName+ ")");
 
-            PendingFriendRequest.Add(profile);
+            lock (_lockPendingFriendRequest) PendingFriendRequest.Add(profile);
         }
         public void ReplyFriendRequest(UserProfile profile, bool accept)
         {
@@ -133,9 +156,11 @@ namespace ServerMessenger
                 throw new Exception("Error: ("+profile.UserName+") not in your friend requests");
 
             if (accept)            
-                AddFriendAndRemoveFriendRequest(profile);            
+                AddFriendAndRemoveFriendRequest(profile);
             else
-                PendingFriendRequest.Remove(profile);
+            {
+               lock (_lockPendingFriendRequest) PendingFriendRequest.Remove(profile);
+            }                
         }
 
         public void AcceptFriendRequest(UserProfile profile)
@@ -145,13 +170,13 @@ namespace ServerMessenger
 
         private void AddFriendAndRemoveFriendRequest(UserProfile pendingFriend)
         {
-            Friends.Add(pendingFriend);
-            PendingFriendRequest.Remove(pendingFriend);
+            lock (_lockFriends) Friends.Add(pendingFriend);
+            lock (_lockPendingFriendRequest) PendingFriendRequest.Remove(pendingFriend);
         }
 
         public int FriendsAmmount()
         {
-            return Friends.Count;
+            lock(_lockFriends) return Friends.Count;
         }
 
     }

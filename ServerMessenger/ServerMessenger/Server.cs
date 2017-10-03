@@ -186,7 +186,7 @@ namespace ServerMessenger
                 UserProfile profile = GetProfileConnectedToClient(client);
                 if (profile.HasLiveChatProfileSet())
                 {
-                    UserProfile chattingFriend = profile.LiveChatProfile.Item1;
+                    UserProfile chattingFriend = profile.GetLiveChatProfile();
                     if (profile.IsOnLiveChat())
                     {
                         Socket clientReciever = GetAuthorizedClientFromProfile(chattingFriend);
@@ -533,10 +533,10 @@ namespace ServerMessenger
         {
             string pendingFriendRequests = "";
             UserProfile profile = GetProfileConnectedToClient(client);
-            foreach (var prof in profile.PendingFriendRequest)
+            foreach (var prof in profile.GetPendingFriendRequest())
             {
                 pendingFriendRequests += prof.UserName;
-                if (!ProfilesAreEquals(profile.PendingFriendRequest.Last(), prof))
+                if (!ProfilesAreEquals(profile.GetPendingFriendRequest().Last(), prof))
                     pendingFriendRequests += "#";
             }
             return pendingFriendRequests;
@@ -632,10 +632,10 @@ namespace ServerMessenger
         {
             string friendlist = "";
             UserProfile profile = GetProfileConnectedToClient(client);
-            foreach (var prof in profile.Friends)
+            foreach (var prof in profile.GetFriends())
             {
                 friendlist += prof.UserName + "_" + prof.FriendsAmmount();               
-                if (!ProfilesAreEquals(profile.Friends.Last(), prof))
+                if (!ProfilesAreEquals(profile.GetFriends().Last(), prof))
                     friendlist += "#";
             }
             return friendlist;
