@@ -6,6 +6,8 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Linq;
+using System.Configuration;
+using System.Net;
 
 namespace ServerMessenger
 {
@@ -92,9 +94,15 @@ namespace ServerMessenger
                 clientAndMessenger = new List<KeyValuePair<Socket, Socket>>();
                 protManager = new ProtocolManager();
                 tcpServer = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                tcpServer.Bind(ChatData.SERVER_IP_END_POINT);
+
+                ConfigurationManager.RefreshSection("appSettings");
+                string ip = ConfigurationManager.AppSettings["Ip"];
+                int port = Int32.Parse(ConfigurationManager.AppSettings["Port"]);
+                IPEndPoint serverEndPoint = new IPEndPoint(IPAddress.Parse(ip), port);
+                tcpServer.Bind(serverEndPoint);
                 tcpServer.Listen(ChatData.MAX_ACTIVE_CONN);
                 Console.WriteLine("Start waiting for clients");
+                Console.WriteLine("Connected at: " + serverEndPoint.ToString());
             }
             catch (Exception)
             {

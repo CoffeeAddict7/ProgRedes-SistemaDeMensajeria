@@ -1,6 +1,7 @@
 ﻿using MessengerDomain;
 using ServerMessenger;
 using System;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -23,6 +24,10 @@ namespace ClientMessenger
         private static string serverErrorMsg = "Server disconnected. Unable to establish connection";
         private static bool liveChatting = false;
         private static string liveChatUser = "";
+
+        private static string ServerIp;
+        private static int ServerPort;
+        private static string ClientIp;
 
         static void Main()
         {
@@ -67,13 +72,18 @@ namespace ClientMessenger
         {
             try
             {
+                ConfigurationManager.RefreshSection("appSettings");
+                ServerIp = ConfigurationManager.AppSettings["Ip"];
+                ServerPort = Int32.Parse(ConfigurationManager.AppSettings["Port"]);
+                ClientIp = ConfigurationManager.AppSettings["ClientIp"];
+
                 chatManager = new ProtocolManager();
                 InitializeClientConfiguration();
                 InitializeMessageClientConfiguration();
                 netStream = new NetworkStream(tcpClient);
                 netStreamMessenger = new NetworkStream(tcpMessageClient);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 Console.WriteLine(serverErrorMsg);
             }
@@ -365,18 +375,20 @@ namespace ClientMessenger
         private static void InitializeClientConfiguration()
         {
             tcpClient = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);            
-            var clientEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 0);
-            tcpClient.Bind(clientEndPoint);            
-            tcpClient.Connect(ChatData.SERVER_IP_END_POINT);      
+            var clientEndPoint = new IPEndPoint(IPAddress.Parse(ClientIp), 0);
+            tcpClient.Bind(clientEndPoint);
+
+            tcpClient.Connect(new IPEndPoint(IPAddress.Parse(ServerIp),ServerPort));      
                   
             Console.WriteLine("Connected to server");
         }
         private static void InitializeMessageClientConfiguration()
         {
             tcpMessageClient = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            var clientEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 0);           
-            tcpMessageClient.Bind(clientEndPoint);            
-            tcpMessageClient.Connect(ChatData.SERVER_IP_END_POINT);
+            var clientEndPoint = new IPEndPoint(IPAddress.Parse(ClientIp), 0);           
+            tcpMessageClient.Bind(clientEndPoint);
+
+            tcpMessageClient.Connect(new IPEndPoint(IPAddress.Parse(ServerIp), ServerPort));
         }
     }
 }

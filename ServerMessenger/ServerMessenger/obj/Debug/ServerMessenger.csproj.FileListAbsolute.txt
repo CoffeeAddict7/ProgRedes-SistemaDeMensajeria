@@ -9,3 +9,13 @@ Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Debug\Messe
 Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Debug\ServerMessenger.csprojResolveAssemblyReference.cache
 Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Debug\ServerMessenger.exe
 Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Debug\ServerMessenger.pdb
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger\bin\Debug\ServerMessenger.exe.config
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger\bin\Debug\ServerMessenger.exe
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger\bin\Debug\ServerMessenger.pdb
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger\bin\Debug\ClientMessenger.exe
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger\bin\Debug\MessengerDomain.dll
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger\bin\Debug\ClientMessenger.pdb
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger\bin\Debug\MessengerDomain.pdb
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger\obj\Debug\ServerMessenger.csprojResolveAssemblyReference.cache
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger\obj\Debug\ServerMessenger.exe
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger\obj\Debug\ServerMessenger.pdb

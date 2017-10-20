@@ -1,0 +1,10 @@
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger\bin\Release\ServerMessenger.exe.config
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger\bin\Release\ServerMessenger.exe
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger\bin\Release\ServerMessenger.pdb
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger\bin\Release\ClientMessenger.exe
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger\bin\Release\MessengerDomain.dll
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger\bin\Release\ClientMessenger.pdb
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger\bin\Release\MessengerDomain.pdb
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger\obj\Release\ServerMessenger.csprojResolveAssemblyReference.cache
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger\obj\Release\ServerMessenger.exe
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger\obj\Release\ServerMessenger.pdb

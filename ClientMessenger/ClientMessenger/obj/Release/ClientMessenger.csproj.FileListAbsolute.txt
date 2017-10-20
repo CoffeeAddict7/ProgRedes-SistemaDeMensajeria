@@ -1,0 +1,8 @@
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ClientMessenger\ClientMessenger\bin\Release\ClientMessenger.exe.config
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ClientMessenger\ClientMessenger\bin\Release\ClientMessenger.exe
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ClientMessenger\ClientMessenger\bin\Release\ClientMessenger.pdb
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ClientMessenger\ClientMessenger\bin\Release\MessengerDomain.dll
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ClientMessenger\ClientMessenger\bin\Release\MessengerDomain.pdb
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ClientMessenger\ClientMessenger\obj\Release\ClientMessenger.csprojResolveAssemblyReference.cache
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ClientMessenger\ClientMessenger\obj\Release\ClientMessenger.exe
+C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ClientMessenger\ClientMessenger\obj\Release\ClientMessenger.pdb
