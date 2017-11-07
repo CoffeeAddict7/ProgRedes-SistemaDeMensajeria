@@ -15,8 +15,12 @@ namespace ClientMessenger
     {
         private static Socket tcpClient;
         private static Socket tcpMessageClient;
+        private static Socket tcpFileClient;
         private static NetworkStream netStream;
         private static NetworkStream netStreamMessenger;
+        private static NetworkStream netStreamFileManager;
+        private static Byte[] dataReadFile;
+        private static Byte[] dataWriteFile;
         private static Byte[] dataRead;
         private static Byte[] dataReadMessenger;
         private static Byte[] dataWrite;
@@ -80,8 +84,10 @@ namespace ClientMessenger
                 chatManager = new ProtocolManager();
                 InitializeClientConfiguration();
                 InitializeMessageClientConfiguration();
+                InitializeFileManagerConfiguration();
                 netStream = new NetworkStream(tcpClient);
                 netStreamMessenger = new NetworkStream(tcpMessageClient);
+                netStreamFileManager = new NetworkStream(tcpFileClient);
             }
             catch (Exception ex)
             {
@@ -219,6 +225,9 @@ namespace ClientMessenger
                 case 9:
                     ShowPendingMessages(data);
                     break;
+                case 10:
+                    Console.WriteLine("> File uploaded!");
+                    break;
                 case 99:
                     connected = false;
                     Console.WriteLine("> {Server closed connection} ");
@@ -316,14 +325,57 @@ namespace ClientMessenger
         {
             Console.WriteLine("[00] Logout\n" + "[01] Login\n" + "[02] Register & Login\n" + "[03] Online users\n" +
                 "[04] Friend list\n" + "[05] Send friend request\n" + "[06] Pending friend requests\n" +
-                "[07] Reply to friend requests\n" + "[08] Chat with friend\n" + "[09] Unread messages");
+                "[07] Reply to friend requests\n" + "[08] Chat with friend\n" + "[09] Unread messages\n" +
+                "[10] Upload file\n" + "[11] View and Download Files");
         }
 
         private static void SendRequestToServer()
-        {            
+        {                       
             String message = Console.ReadLine();
             ChatProtocol request = MakeChatProtocolRequest(message);
-            SendPackage(request);
+            if (request.Command.Equals(ChatData.CMD_UPLOAD_FILE))
+                SendFileRequestToServer(request);
+            else
+                SendPackage(request);
+        }
+
+        private static void SendFileRequestToServer(ChatProtocol request)
+        {
+            if (!File.Exists(request.Payload))
+                throw new Exception("Error: Invalid file path for upload");
+
+            using(FileStream fileStream = new FileStream(request.Payload, FileMode.Open, FileAccess.Read))
+            {
+                var name = Path.GetFileName(request.Payload);
+                var length = fileStream.Length;
+                var command = request.Command;
+                var packageName = chatManager.CreateRequestProtocol(command, name + "#" + length);
+                SendPackage(packageName);
+            }
+            SendFile(request.Payload);
+
+            //   var package = chatManager.CreateFileRequestProtocol(request.Command, name, content);
+            //  SendPackageAsFile(request);
+        }
+
+        private static void SendFile(string path)
+        {
+            try
+            {
+                using (Stream source = File.OpenRead(path))
+                {
+                    byte[] buffer = new byte[2048];
+                    int bytesRead;
+                    while ((bytesRead = source.Read(buffer, 0, buffer.Length)) > 0)
+                    {
+                        netStream.Write(buffer, 0, bytesRead);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                ServerConnectionLost();
+            }
         }
 
         private static ChatProtocol MakeChatProtocolRequest(string message)
@@ -389,6 +441,14 @@ namespace ClientMessenger
             tcpMessageClient.Bind(clientEndPoint);
 
             tcpMessageClient.Connect(new IPEndPoint(IPAddress.Parse(ServerIp), ServerPort));
+        }
+
+        private static void InitializeFileManagerConfiguration()
+        {
+            tcpFileClient = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            var clientEndPoint = new IPEndPoint(IPAddress.Parse(ClientIp), 0);
+            tcpFileClient.Bind(clientEndPoint);
+            tcpFileClient.Connect(new IPEndPoint(IPAddress.Parse(ServerIp), ServerPort));
         }
     }
 }

@@ -8,3 +8,13 @@ C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger
 C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger\obj\Release\ServerMessenger.csprojResolveAssemblyReference.cache
 C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger\obj\Release\ServerMessenger.exe
 C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ServerMessenger\ServerMessenger\obj\Release\ServerMessenger.pdb
+Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Release\ServerMessenger.exe.config
+Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Release\ServerMessenger.exe
+Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Release\ServerMessenger.pdb
+Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Release\ClientMessenger.exe
+Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Release\MessengerDomain.dll
+Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Release\ClientMessenger.pdb
+Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Release\MessengerDomain.pdb
+Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Release\ServerMessenger.csprojResolveAssemblyReference.cache
+Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Release\ServerMessenger.exe
+Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Release\ServerMessenger.pdb

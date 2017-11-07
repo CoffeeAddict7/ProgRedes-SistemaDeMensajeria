@@ -20,6 +20,7 @@ namespace ServerMessenger
         private static List<UserProfile> storedUserProfiles;
         private static Dictionary<Socket,UserProfile> authorizedClients;
         private static List<KeyValuePair<Socket, Socket>> clientAndMessenger;
+        private static List<KeyValuePair<Socket, Socket>> clientAndFileManager;
 
         static readonly object _lockAuthorizedClients = new object();
         static readonly object _lockClientAndMessenger = new object();
@@ -69,12 +70,13 @@ namespace ServerMessenger
                 {
                     Socket clientSocket = tcpServer.Accept();
                     Socket clientSocketMessenger = tcpServer.Accept();
-                    
+                    Socket clientSocketFileManager = tcpServer.Accept();
                     var thread = new Thread(() => ClientHandler(clientSocket));
                     thread.Start();
 
                     activeClientThreads.Add(clientSocket, thread);
                     clientAndMessenger.Add(new KeyValuePair<Socket, Socket>(clientSocket, clientSocketMessenger));
+                    clientAndFileManager.Add(new KeyValuePair<Socket, Socket>(clientSocket, clientSocketFileManager)); //Delete after closing connection
                 }
                 catch (Exception ex)
                 {
@@ -92,6 +94,7 @@ namespace ServerMessenger
                 acceptingConnections = true;
                 activeClientThreads = new Dictionary<Socket, Thread>();
                 clientAndMessenger = new List<KeyValuePair<Socket, Socket>>();
+                clientAndFileManager = new List<KeyValuePair<Socket, Socket>>();
                 protManager = new ProtocolManager();
                 tcpServer = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
@@ -262,11 +265,51 @@ namespace ServerMessenger
                 case 9:
                     ProcessUnseenMessagesRequest(client, chatMsg);
                     break;
+                case 10:
+                    ProcessUploadFile(client, chatMsg);
+                    break;
                 default:
                     throw new Exception("Error: Unidentified command");
             }
         }
 
+        private static void ProcessUploadFile(Socket client, ChatProtocol chatMsg)
+        {
+       //     if (!ClientIsConnected(client))
+         //       throw new Exception("Error: To upload files login first");
+          //  UserProfile profile = GetProfileConnectedToClient(client);
+            var fileNameAndLength = chatMsg.Payload.Split('#');
+            string fileName = fileNameAndLength[0];
+            string fileBytes = fileNameAndLength[1];
+           // Socket fileManagerClient = clientAndFileManager.First(cliAndFile => ClientsAreEquals(cliAndFile.Key, client)).Value;
+            try
+            {
+                NetworkStream netStreamClient = new NetworkStream(client);
+                using (Stream dest = File.OpenWrite(fileName))
+                {
+                    byte[] buffer = new byte[Int32.Parse(fileBytes)];
+                    int bytesToRead = Int32.Parse(fileBytes);
+                    int localRead = 0, recieved = 0;
+                    while (bytesToRead > 0)
+                    {
+                        localRead = netStreamClient.Read(buffer, recieved, bytesToRead);
+                        recieved += localRead;
+                        bytesToRead -= localRead;
+                    }
+                    dest.Write(buffer, 0, Int32.Parse(fileBytes));
+                    Console.WriteLine("Termino de leer!");
+                }                
+
+                ChatProtocol response = protManager.CreateResponseOkProtocol(chatMsg.Command);
+                NotifyClientWithPackage(client, response.Package);
+
+            }catch(Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
+
+        }
         private static void ProcessUnseenMessagesRequest(Socket client, ChatProtocol chatMsg)
         {
             if(!ClientIsConnected(client))

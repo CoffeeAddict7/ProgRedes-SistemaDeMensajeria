@@ -1,12 +1,4 @@
 Y:\Documents\Visual Studio 2015\Projects\CompProgTests\ClientMessenger\ClientMessenger\bin\Debug\ClientMessenger.exe.config
-Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Debug\ClientMessenger.exe.config
-Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Debug\ClientMessenger.exe
-Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Debug\ClientMessenger.pdb
-Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Debug\MessengerDomain.dll
-Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Debug\MessengerDomain.pdb
-Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Debug\ClientMessenger.csprojResolveAssemblyReference.cache
-Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Debug\ClientMessenger.exe
-Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Debug\ClientMessenger.pdb
 C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ClientMessenger\ClientMessenger\bin\Debug\ClientMessenger.exe.config
 C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ClientMessenger\ClientMessenger\bin\Debug\ClientMessenger.exe
 C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ClientMessenger\ClientMessenger\bin\Debug\ClientMessenger.pdb
@@ -15,3 +7,11 @@ C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ClientMessenger\ClientMessenger
 C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ClientMessenger\ClientMessenger\obj\Debug\ClientMessenger.csprojResolveAssemblyReference.cache
 C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ClientMessenger\ClientMessenger\obj\Debug\ClientMessenger.exe
 C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ClientMessenger\ClientMessenger\obj\Debug\ClientMessenger.pdb
+Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Debug\ClientMessenger.exe.config
+Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Debug\ClientMessenger.exe
+Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Debug\ClientMessenger.pdb
+Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Debug\MessengerDomain.dll
+Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Debug\MessengerDomain.pdb
+Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Debug\ClientMessenger.csprojResolveAssemblyReference.cache
+Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Debug\ClientMessenger.exe
+Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Debug\ClientMessenger.pdb

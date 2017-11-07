@@ -22,6 +22,7 @@ namespace MessengerDomain
         public static string LIVECHAT_CHAT = "CHAT";
         public static string CMD_LIVECHAT = "08";
         public static string CMD_UNSEEN_MSGS = "09";
+        public static string CMD_UPLOAD_FILE = "10";
         public static string BEGIN_LIVECHAT = "Begin chat...";
         public static string ENDED_LIVECHAT = "Chat ended.";
         public static string UNSEEN_MESSAGES = "Those where your friend unseen messages";

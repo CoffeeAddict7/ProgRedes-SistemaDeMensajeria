@@ -6,3 +6,11 @@ C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ClientMessenger\ClientMessenger
 C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ClientMessenger\ClientMessenger\obj\Release\ClientMessenger.csprojResolveAssemblyReference.cache
 C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ClientMessenger\ClientMessenger\obj\Release\ClientMessenger.exe
 C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ClientMessenger\ClientMessenger\obj\Release\ClientMessenger.pdb
+Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Release\ClientMessenger.exe.config
+Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Release\ClientMessenger.exe
+Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Release\ClientMessenger.pdb
+Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Release\MessengerDomain.dll
+Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Release\MessengerDomain.pdb
+Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Release\ClientMessenger.csprojResolveAssemblyReference.cache
+Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Release\ClientMessenger.exe
+Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Release\ClientMessenger.pdb
