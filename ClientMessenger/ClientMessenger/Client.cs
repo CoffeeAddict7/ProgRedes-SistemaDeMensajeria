@@ -15,7 +15,6 @@ namespace ClientMessenger
     {
         private static Socket tcpClient;
         private static Socket tcpMessageClient;
-        private static Socket tcpFileClient;
         private static NetworkStream netStream;
         private static NetworkStream netStreamMessenger;
         private static Byte[] dataRead;
@@ -25,7 +24,7 @@ namespace ClientMessenger
         private static string serverErrorMsg = "Server disconnected. Unable to establish connection";
         private static bool liveChatting = false;
         private static string liveChatUser = "";
-
+        private static string fileToSend;
         private static string ServerIp;
         private static int ServerPort;
         private static string ClientIp;
@@ -83,6 +82,7 @@ namespace ClientMessenger
                 InitializeMessageClientConfiguration();
                 netStream = new NetworkStream(tcpClient);
                 netStreamMessenger = new NetworkStream(tcpMessageClient);
+                fileToSend = String.Empty;
             }
             catch (Exception ex)
             {
@@ -107,8 +107,13 @@ namespace ClientMessenger
                 ChatProtocol protocol = ReadFromMessengerClientAndGetProtocol();            
                 string[] packageState = protocol.Payload.Split('$');
                 string[] messageInfo = packageState[1].Split('#');
-                if(messageInfo.Length >= 2)                
-                    ShowLiveChatMessage(messageInfo);                
+                if (messageInfo.Length >= 2)
+                    ShowLiveChatMessage(messageInfo);
+                else
+                {
+                    if (ChatData.CMD_UPLOAD_FILE.Equals(protocol.Command) && !fileToSend.Equals(String.Empty))
+                        SendFile(fileToSend);
+                }      
             }
             catch (Exception)
             {
@@ -178,7 +183,11 @@ namespace ClientMessenger
             string responseData = typeAndData[1];
 
             if (responseType.Equals(ChatData.RESPONSE_ERROR))
+            {
                 Console.WriteLine("> " + responseData);
+                if (chatPackage.Command.Equals(ChatData.CMD_UPLOAD_FILE))
+                    fileToSend = String.Empty;                
+            }
             else
                 ProcessResponseOkByCommand(chatPackage.GetCommandNumber(), responseData);
         }
@@ -221,7 +230,8 @@ namespace ClientMessenger
                     ShowPendingMessages(data);
                     break;
                 case 10:
-                    Console.WriteLine("> File upload completed!");
+                    fileToSend = String.Empty;
+                    Console.WriteLine("> " + data);                                          
                     break;
                 case 11:
                     Console.WriteLine("> COMPLETAR RESPUESTA LADO CLIENTE");
@@ -350,7 +360,8 @@ namespace ClientMessenger
                 var packageName = chatManager.CreateRequestProtocol(command, name + "#" + length);
                 SendPackage(packageName);
             }
-            SendFile(request.Payload);            
+            fileToSend = request.Payload;
+           // SendFile(request.Payload);            
         }
 
         private static void SendFile(string path)

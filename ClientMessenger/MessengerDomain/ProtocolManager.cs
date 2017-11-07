@@ -65,6 +65,7 @@ namespace MessengerDomain
         {
             return CreateLiveChatProtocol(ChatData.RESPONSE_HEADER, ChatData.RESPONSE_OK + "$" + profile + "#" + chatState + "#" + message);
         }
+
         public ChatProtocol CreateLiveChatRequestProtocol(string profile, string chatState, string message)
         {
             return CreateLiveChatProtocol(ChatData.REQUEST_HEADER, profile + "#" + chatState + "#" + message);

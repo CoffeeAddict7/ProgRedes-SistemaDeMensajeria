@@ -284,22 +284,37 @@ namespace ServerMessenger
 
         private static void ProcessUploadFile(Socket client, ChatProtocol chatMsg)
         {
-       //     if (!ClientIsConnected(client))
-         //       throw new Exception("Error: To upload files login first");
+            if (!ClientIsConnected(client))
+                throw new Exception("Error: To upload files login first");
 
             var fileNameAndLength = chatMsg.Payload.Split('#');
             string fileName = fileNameAndLength[0];
-            string fileBytes = fileNameAndLength[1];
+            int fileBytes = Int32.Parse(fileNameAndLength[1]);
             string storagePath = Path.Combine(clientFilesDirectory, fileName);
             if (File.Exists(storagePath))
                 throw new Exception("Error: Already exists file uploaded with that name");
 
+            NotifyClientInstantlyWithOkResponse(client, chatMsg);
+            UploadFileToServerDirectory(client, fileBytes, storagePath);
+            ChatProtocol responseAfterUpload = protManager.CreateResponseOkProtocol(chatMsg.Command, "File upload completed!");
+            NotifyClientWithPackage(client, responseAfterUpload.Package);
+        }
+
+        private static void NotifyClientInstantlyWithOkResponse(Socket client, ChatProtocol chatMsg)
+        {
+            Socket messengerClient = GetClientMessengerSocket(client);
+            ChatProtocol responseForSend = protManager.CreateResponseOkProtocol(chatMsg.Command);
+            NotifyClientWithPackage(messengerClient, responseForSend.Package);
+        }
+
+        private static void UploadFileToServerDirectory(Socket client, int fileBytes, string storagePath)
+        {
             using (NetworkStream netStreamClient = new NetworkStream(client))
             {
                 using (Stream dest = File.OpenWrite(storagePath))
                 {
-                    byte[] buffer = new byte[Int32.Parse(fileBytes)];
-                    int bytesToRead = Int32.Parse(fileBytes);
+                    byte[] buffer = new byte[fileBytes];
+                    int bytesToRead = fileBytes;
                     int localRead = 0, recieved = 0;
                     while (bytesToRead > 0)
                     {
@@ -307,14 +322,12 @@ namespace ServerMessenger
                         recieved += localRead;
                         bytesToRead -= localRead;
                     }
-                    dest.Write(buffer, 0, Int32.Parse(fileBytes));
+                    dest.Write(buffer, 0, fileBytes);
                     Console.WriteLine("File upload completed!");
                 }
-
-                ChatProtocol response = protManager.CreateResponseOkProtocol(chatMsg.Command);
-                NotifyClientWithPackage(client, response.Package);
-            }            
+            }
         }
+
         private static void ProcessUnseenMessagesRequest(Socket client, ChatProtocol chatMsg)
         {
             if(!ClientIsConnected(client))
