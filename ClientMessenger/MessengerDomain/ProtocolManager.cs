@@ -142,21 +142,6 @@ namespace MessengerDomain
                 }
             }
         }
-        public char[] ReadBytesFromFile(Socket client, StreamReader reader, int fileLength, string name)
-        {
-            var payloadBuffer = new char[fileLength + 1];
-            int received = 0, localReceived = 0, bytesLeftToRead = 0;
-            int payloadLength = fileLength;
-            while (received != payloadLength)
-            {
-                bytesLeftToRead = payloadLength - received;                
-                localReceived = reader.Read(payloadBuffer, received, bytesLeftToRead);
-                received += localReceived;
-                if (localReceived == 0)
-                    EndConnection(client);
-            }
-            return payloadBuffer;
-        }
 
         public void AppendBufferToStringBuilder(ref StringBuilder sb, char[] payloadBuffer, int payloadLength)
         {

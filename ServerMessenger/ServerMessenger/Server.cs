@@ -20,7 +20,7 @@ namespace ServerMessenger
         private static List<UserProfile> storedUserProfiles;
         private static Dictionary<Socket,UserProfile> authorizedClients;
         private static List<KeyValuePair<Socket, Socket>> clientAndMessenger;
-        private static List<KeyValuePair<Socket, Socket>> clientAndFileManager;
+        private static string clientFilesDirectory;
 
         static readonly object _lockAuthorizedClients = new object();
         static readonly object _lockClientAndMessenger = new object();
@@ -70,13 +70,11 @@ namespace ServerMessenger
                 {
                     Socket clientSocket = tcpServer.Accept();
                     Socket clientSocketMessenger = tcpServer.Accept();
-                    Socket clientSocketFileManager = tcpServer.Accept();
                     var thread = new Thread(() => ClientHandler(clientSocket));
                     thread.Start();
 
                     activeClientThreads.Add(clientSocket, thread);
                     clientAndMessenger.Add(new KeyValuePair<Socket, Socket>(clientSocket, clientSocketMessenger));
-                    clientAndFileManager.Add(new KeyValuePair<Socket, Socket>(clientSocket, clientSocketFileManager)); //Delete after closing connection
                 }
                 catch (Exception ex)
                 {
@@ -91,27 +89,38 @@ namespace ServerMessenger
         {
             try
             {
-                acceptingConnections = true;
-                activeClientThreads = new Dictionary<Socket, Thread>();
-                clientAndMessenger = new List<KeyValuePair<Socket, Socket>>();
-                clientAndFileManager = new List<KeyValuePair<Socket, Socket>>();
-                protManager = new ProtocolManager();
-                tcpServer = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                InitializeServerAttributes();
+                EstablishConnection();
 
-                ConfigurationManager.RefreshSection("appSettings");
-                string ip = ConfigurationManager.AppSettings["Ip"];
-                int port = Int32.Parse(ConfigurationManager.AppSettings["Port"]);
-                IPEndPoint serverEndPoint = new IPEndPoint(IPAddress.Parse(ip), port);
-                tcpServer.Bind(serverEndPoint);
-                tcpServer.Listen(ChatData.MAX_ACTIVE_CONN);
-                Console.WriteLine("Start waiting for clients");
-                Console.WriteLine("Connected at: " + serverEndPoint.ToString());
             }
             catch (Exception)
             {
                 acceptingConnections = false;
                 Console.WriteLine("Error -> Instance of the server already running"); Console.Read();
             }
+        }
+
+        private static void EstablishConnection()
+        {
+            tcpServer = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            ConfigurationManager.RefreshSection("appSettings");
+            string ip = ConfigurationManager.AppSettings["Ip"];
+            int port = Int32.Parse(ConfigurationManager.AppSettings["Port"]);
+            IPEndPoint serverEndPoint = new IPEndPoint(IPAddress.Parse(ip), port);
+            tcpServer.Bind(serverEndPoint);
+            tcpServer.Listen(ChatData.MAX_ACTIVE_CONN);
+            Console.WriteLine("Start waiting for clients");
+            Console.WriteLine("Connected at: " + serverEndPoint.ToString());
+        }
+
+        private static void InitializeServerAttributes()
+        {
+            acceptingConnections = true;
+            activeClientThreads = new Dictionary<Socket, Thread>();
+            clientAndMessenger = new List<KeyValuePair<Socket, Socket>>();
+            protManager = new ProtocolManager();
+            clientFilesDirectory = "UserFiles";
+            Directory.CreateDirectory(clientFilesDirectory);
         }
 
         private static void ReadServerCommands()
@@ -277,15 +286,17 @@ namespace ServerMessenger
         {
        //     if (!ClientIsConnected(client))
          //       throw new Exception("Error: To upload files login first");
-          //  UserProfile profile = GetProfileConnectedToClient(client);
+
             var fileNameAndLength = chatMsg.Payload.Split('#');
             string fileName = fileNameAndLength[0];
             string fileBytes = fileNameAndLength[1];
-           // Socket fileManagerClient = clientAndFileManager.First(cliAndFile => ClientsAreEquals(cliAndFile.Key, client)).Value;
-            try
+            string storagePath = Path.Combine(clientFilesDirectory, fileName);
+            if (File.Exists(storagePath))
+                throw new Exception("Error: Already exists file uploaded with that name");
+
+            using (NetworkStream netStreamClient = new NetworkStream(client))
             {
-                NetworkStream netStreamClient = new NetworkStream(client);
-                using (Stream dest = File.OpenWrite(fileName))
+                using (Stream dest = File.OpenWrite(storagePath))
                 {
                     byte[] buffer = new byte[Int32.Parse(fileBytes)];
                     int bytesToRead = Int32.Parse(fileBytes);
@@ -297,18 +308,12 @@ namespace ServerMessenger
                         bytesToRead -= localRead;
                     }
                     dest.Write(buffer, 0, Int32.Parse(fileBytes));
-                    Console.WriteLine("Termino de leer!");
-                }                
+                    Console.WriteLine("File upload completed!");
+                }
 
                 ChatProtocol response = protManager.CreateResponseOkProtocol(chatMsg.Command);
                 NotifyClientWithPackage(client, response.Package);
-
-            }catch(Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-
-
+            }            
         }
         private static void ProcessUnseenMessagesRequest(Socket client, ChatProtocol chatMsg)
         {

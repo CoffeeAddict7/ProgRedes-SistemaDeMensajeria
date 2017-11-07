@@ -18,9 +18,6 @@ namespace ClientMessenger
         private static Socket tcpFileClient;
         private static NetworkStream netStream;
         private static NetworkStream netStreamMessenger;
-        private static NetworkStream netStreamFileManager;
-        private static Byte[] dataReadFile;
-        private static Byte[] dataWriteFile;
         private static Byte[] dataRead;
         private static Byte[] dataReadMessenger;
         private static Byte[] dataWrite;
@@ -84,10 +81,8 @@ namespace ClientMessenger
                 chatManager = new ProtocolManager();
                 InitializeClientConfiguration();
                 InitializeMessageClientConfiguration();
-                InitializeFileManagerConfiguration();
                 netStream = new NetworkStream(tcpClient);
                 netStreamMessenger = new NetworkStream(tcpMessageClient);
-                netStreamFileManager = new NetworkStream(tcpFileClient);
             }
             catch (Exception ex)
             {
@@ -226,7 +221,10 @@ namespace ClientMessenger
                     ShowPendingMessages(data);
                     break;
                 case 10:
-                    Console.WriteLine("> File uploaded!");
+                    Console.WriteLine("> File upload completed!");
+                    break;
+                case 11:
+                    Console.WriteLine("> COMPLETAR RESPUESTA LADO CLIENTE");
                     break;
                 case 99:
                     connected = false;
@@ -352,10 +350,7 @@ namespace ClientMessenger
                 var packageName = chatManager.CreateRequestProtocol(command, name + "#" + length);
                 SendPackage(packageName);
             }
-            SendFile(request.Payload);
-
-            //   var package = chatManager.CreateFileRequestProtocol(request.Command, name, content);
-            //  SendPackageAsFile(request);
+            SendFile(request.Payload);            
         }
 
         private static void SendFile(string path)
@@ -441,14 +436,6 @@ namespace ClientMessenger
             tcpMessageClient.Bind(clientEndPoint);
 
             tcpMessageClient.Connect(new IPEndPoint(IPAddress.Parse(ServerIp), ServerPort));
-        }
-
-        private static void InitializeFileManagerConfiguration()
-        {
-            tcpFileClient = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            var clientEndPoint = new IPEndPoint(IPAddress.Parse(ClientIp), 0);
-            tcpFileClient.Bind(clientEndPoint);
-            tcpFileClient.Connect(new IPEndPoint(IPAddress.Parse(ServerIp), ServerPort));
         }
     }
 }
