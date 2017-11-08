@@ -275,17 +275,69 @@ namespace ServerMessenger
                     ProcessUnseenMessagesRequest(client, chatMsg);
                     break;
                 case 10:
-                    ProcessUploadFile(client, chatMsg);
+                    ProcessUploadFileRequest(client, chatMsg);
+                    break;
+                case 11:
+                    ProcessViewAndDownloadFileRequest(client, chatMsg);
                     break;
                 default:
                     throw new Exception("Error: Unidentified command");
             }
         }
 
-        private static void ProcessUploadFile(Socket client, ChatProtocol chatMsg)
+        private static void ProcessViewAndDownloadFileRequest(Socket client, ChatProtocol chatMsg)
         {
-            if (!ClientIsConnected(client))
-                throw new Exception("Error: To upload files login first");
+            ValidateClientConnected(client, "view or download files");
+            if (chatMsg.Payload.Equals(String.Empty))
+            {
+                ChatProtocol response = protManager.CreateResponseOkProtocol(chatMsg.Command, GenerateStoredFilesList());
+                NotifyClientWithPackage(client, response.Package);
+            }
+            else
+            {
+                string selectedStoredFile = Path.Combine(clientFilesDirectory, chatMsg.Payload);
+                if (!File.Exists(selectedStoredFile))
+                    throw new Exception("Error: Selected file name doesnt exists");
+
+                string responsePayload = ChatData.FILE_TO_DOWNLOAD + "#" + chatMsg.Payload + "#" + File.ReadAllBytes(selectedStoredFile).Length;
+                ChatProtocol response = protManager.CreateResponseOkProtocol(chatMsg.Command, responsePayload);
+                NotifyClientWithPackage(client, response.Package);
+                using (NetworkStream netStream = new NetworkStream(client))
+                {
+                    using (Stream source = File.OpenRead(selectedStoredFile))
+                    {
+                        byte[] buffer = new byte[2048];
+                        int bytesRead;
+                        while ((bytesRead = source.Read(buffer, 0, buffer.Length)) > 0)
+                        {
+                            netStream.Write(buffer, 0, bytesRead);
+                        }
+                    }
+                }
+                Console.WriteLine("File Sent!");
+            }
+
+        }
+
+        private static string GenerateStoredFilesList()
+        {
+            string filesUploaded = ChatData.FILES_FOR_DOWNLOAD;
+            var storedFiles = Directory.EnumerateFiles(clientFilesDirectory);
+            if (storedFiles.Count() != 0)
+                filesUploaded += "#";
+            foreach (string file in storedFiles)
+            {
+                filesUploaded += Path.GetFileName(file);
+                if (!storedFiles.Last().Equals(file))
+                    filesUploaded += "#";
+            }
+
+            return filesUploaded;
+        }
+
+        private static void ProcessUploadFileRequest(Socket client, ChatProtocol chatMsg)
+        {
+            ValidateClientConnected(client, "upload files");
 
             var fileNameAndLength = chatMsg.Payload.Split('#');
             string fileName = fileNameAndLength[0];
@@ -298,6 +350,12 @@ namespace ServerMessenger
             UploadFileToServerDirectory(client, fileBytes, storagePath);
             ChatProtocol responseAfterUpload = protManager.CreateResponseOkProtocol(chatMsg.Command, "File upload completed!");
             NotifyClientWithPackage(client, responseAfterUpload.Package);
+        }
+
+        private static void ValidateClientConnected(Socket client, string command)
+        {
+            if (!ClientIsConnected(client))
+                throw new Exception("Error: To "+ command +", login first");
         }
 
         private static void NotifyClientInstantlyWithOkResponse(Socket client, ChatProtocol chatMsg)

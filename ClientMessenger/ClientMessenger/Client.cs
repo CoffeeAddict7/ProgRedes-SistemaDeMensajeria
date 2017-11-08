@@ -28,6 +28,7 @@ namespace ClientMessenger
         private static string ServerIp;
         private static int ServerPort;
         private static string ClientIp;
+        private static string filesDownloadDirectory = "MessengerFiles";
 
         static void Main()
         {
@@ -83,6 +84,7 @@ namespace ClientMessenger
                 netStream = new NetworkStream(tcpClient);
                 netStreamMessenger = new NetworkStream(tcpMessageClient);
                 fileToSend = String.Empty;
+                Directory.CreateDirectory(filesDownloadDirectory);
             }
             catch (Exception ex)
             {
@@ -234,7 +236,7 @@ namespace ClientMessenger
                     Console.WriteLine("> " + data);                                          
                     break;
                 case 11:
-                    Console.WriteLine("> COMPLETAR RESPUESTA LADO CLIENTE");
+                    ProcessFilesResponse(data);
                     break;
                 case 99:
                     connected = false;
@@ -244,6 +246,47 @@ namespace ClientMessenger
                     Console.WriteLine("> Response not implemented");
                     break;
             }
+        }
+
+        private static void ProcessFilesResponse(string data)
+        {
+            string[] messageInfo = data.Split('#');
+            string type = messageInfo[0];
+            if (type.Equals(ChatData.FILES_FOR_DOWNLOAD))
+            {
+                ShowFilesAvailablesForDownload(messageInfo);
+            }
+            else
+            {
+                string storagePath = Path.Combine(filesDownloadDirectory, messageInfo[1]);
+                int fileBytes = Int32.Parse(messageInfo[2]);
+                using (Stream dest = File.OpenWrite(storagePath))
+                {
+                    byte[] buffer = new byte[fileBytes];
+                    int bytesToRead = fileBytes;
+                    int localRead = 0, recieved = 0;
+                    while (bytesToRead > 0)
+                    {
+                        localRead = netStream.Read(buffer, recieved, bytesToRead);
+                        recieved += localRead;
+                        bytesToRead -= localRead;
+                    }
+                    dest.Write(buffer, 0, fileBytes);
+                    Console.WriteLine("File download completed!");                    
+                }
+                
+            }
+        }
+
+        private static void ShowFilesAvailablesForDownload(string[] messageInfo)
+        {
+            if (messageInfo[1].Equals(String.Empty))
+                Console.WriteLine("> No files uploaded");
+            else
+                Console.WriteLine("> Uploaded files:");
+
+            for (int i = 1; i < messageInfo.Length; i++)
+                Console.WriteLine("\t" + messageInfo[i]);
         }
 
         private static void ShowPendingMessages(string data)
@@ -360,8 +403,7 @@ namespace ClientMessenger
                 var packageName = chatManager.CreateRequestProtocol(command, name + "#" + length);
                 SendPackage(packageName);
             }
-            fileToSend = request.Payload;
-           // SendFile(request.Payload);            
+            fileToSend = request.Payload;  
         }
 
         private static void SendFile(string path)

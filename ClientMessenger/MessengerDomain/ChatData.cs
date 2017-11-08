@@ -26,6 +26,8 @@ namespace MessengerDomain
         public static string BEGIN_LIVECHAT = "Begin chat...";
         public static string ENDED_LIVECHAT = "Chat ended.";
         public static string UNSEEN_MESSAGES = "Those where your friend unseen messages";
+        public static string FILES_FOR_DOWNLOAD = "FILES";
+        public static string FILE_TO_DOWNLOAD = "FILE";
         public static string PENDING_MSGS_USERS = "USERS";
         public static string PENDING_MSGS_PROFILE_MSGS = "PROFILE";
         public static ICollection<string> acceptedFriendRequestReply = new List<String> { FRIEND_REQUEST_YES_REPLY, FRIEND_REQUEST_NO_REPLY};
