@@ -8,31 +8,27 @@ using System.Threading;
 using System.Linq;
 using System.Configuration;
 using System.Net;
+using System.Runtime;
+using System.Runtime.Remoting;
+using System.Runtime.Remoting.Channels;
+using System.Runtime.Remoting.Channels.Tcp;
+using Persistence;
 
 namespace ServerMessenger
 {
-    public class Server
+    public sealed class Server
     {
         private static bool acceptingConnections;
-        private static Dictionary<Socket, Thread> activeClientThreads;
         private static Socket tcpServer;
         private static ProtocolManager protManager;
-        private static List<UserProfile> storedUserProfiles;
-        private static Dictionary<Socket,UserProfile> authorizedClients;
-        private static List<KeyValuePair<Socket, Socket>> clientAndMessenger;
         private static string clientFilesDirectory;
-
-        static readonly object _lockAuthorizedClients = new object();
-        static readonly object _lockClientAndMessenger = new object();
-        static readonly object _lockStoredProfiles = new object();
-        static readonly object _lock = new object();
+        private static Context context;
+        static readonly object _lockClientResponse = new object();
 
         static void Main(string[] args)
         {
             try
             {
-                LoadPersistenceStructures();
-                LoadUserProfiles();
                 StartServer();
             }
             catch(Exception ex)
@@ -40,22 +36,6 @@ namespace ServerMessenger
                 Console.WriteLine(ex.Message);
                 Console.Read();
             }         
-        }
-
-        private static void LoadPersistenceStructures()
-        {
-            storedUserProfiles = new List<UserProfile>();
-            authorizedClients = new Dictionary<Socket, UserProfile>();
-        }
-
-        private static void LoadUserProfiles()
-        {
-            UserProfile luis = new UserProfile("LUIS", "PEPE");
-            UserProfile jose = new UserProfile("JOSE", "PEPE");
-            luis.AddFriend(jose);
-            jose.AddFriend(luis);
-            storedUserProfiles.Add(luis);
-            storedUserProfiles.Add(jose);
         }
 
         private static void StartServer()
@@ -72,9 +52,8 @@ namespace ServerMessenger
                     Socket clientSocketMessenger = tcpServer.Accept();
                     var thread = new Thread(() => ClientHandler(clientSocket));
                     thread.Start();
-
-                    activeClientThreads.Add(clientSocket, thread);
-                    clientAndMessenger.Add(new KeyValuePair<Socket, Socket>(clientSocket, clientSocketMessenger));
+                    context.AddActiveClient(clientSocket, thread);
+                    context.AddClientMessenger(clientSocket, clientSocketMessenger);
                 }
                 catch (Exception ex)
                 {
@@ -89,9 +68,9 @@ namespace ServerMessenger
         {
             try
             {
+                context = Context.GetInstance();
                 InitializeServerAttributes();
-                EstablishConnection();
-
+                EstablishConnection();     
             }
             catch (Exception)
             {
@@ -116,8 +95,6 @@ namespace ServerMessenger
         private static void InitializeServerAttributes()
         {
             acceptingConnections = true;
-            activeClientThreads = new Dictionary<Socket, Thread>();
-            clientAndMessenger = new List<KeyValuePair<Socket, Socket>>();
             protManager = new ProtocolManager();
             clientFilesDirectory = "UserFiles";
             Directory.CreateDirectory(clientFilesDirectory);
@@ -141,9 +118,9 @@ namespace ServerMessenger
             }
             else if (command.Equals("USERS"))
             {
-                if (storedUserProfiles.Count > 0)
+                if (context.GetUserProfiles().Count > 0)
                 {
-                    foreach (var prof in storedUserProfiles)
+                    foreach (var prof in context.GetUserProfiles())
                         Console.WriteLine("- " + prof.UserName + " friends: (" + prof.FriendsAmmount() + ") connections: (" + prof.NumberOfConnections + ")");
                 }
                 else
@@ -153,16 +130,15 @@ namespace ServerMessenger
                 Console.WriteLine("> Wrong command");
         }
 
-
         private static void CloseServerConnection()
         {
             acceptingConnections = false;
-            foreach (KeyValuePair<Socket, Thread> entry in activeClientThreads)
+            foreach (KeyValuePair<Socket, Thread> entry in context.GetActiveClients())
             {
                 ChatProtocol closeConnectionResponse = protManager.CreateResponseOkProtocol("99");
                 EndClientConnection(entry.Key);
             }
-            activeClientThreads = new Dictionary<Socket, Thread>();
+            context.RemoveAllActiveClients();
         }
 
         private static void ClientHandler(Socket client)
@@ -186,15 +162,15 @@ namespace ServerMessenger
             Console.WriteLine("Client disconnected!");
             stream.Close();
             EndClientConnection(client);
-            activeClientThreads.Remove(client);
+            context.RemoveActiveClient(client);
         }
 
         private static void EndClientConnection(Socket client)
         {
             NotifyIfHasChattingFriend(client);
             Socket clientMessenger = GetClientMessengerSocket(client);
-            lock (_lockAuthorizedClients) authorizedClients.Remove(client);
-            lock(_lockClientAndMessenger) clientAndMessenger.Remove(new KeyValuePair<Socket, Socket>(client, clientMessenger));            
+            context.RemoveClientAuthorization(client);
+            context.RemoveClientMessenger(client, clientMessenger);        
             protManager.EndConnection(client);
             protManager.EndConnection(clientMessenger);
         }
@@ -221,7 +197,7 @@ namespace ServerMessenger
 
         private static Socket GetClientMessengerSocket(Socket client)
         {
-            lock (_lockClientAndMessenger) return clientAndMessenger.Find(kvp => kvp.Key.RemoteEndPoint.Equals(client.RemoteEndPoint)).Value;
+            return context.GetClientMessenger(client);
         }
 
         private static void ProcessMessage(Socket client, ChatProtocol chatMsg)
@@ -486,7 +462,7 @@ namespace ServerMessenger
 
         private static Socket GetAuthorizedClientFromProfile(UserProfile profile)
         {
-            lock(_lockAuthorizedClients) return authorizedClients.First(auth => ProfilesAreEquals(auth.Value, profile)).Key;
+            return context.GetClientFromProfile(profile);
         }
 
         private static void OnlineChat(Socket client, string chatMessage, UserProfile senderProf, UserProfile recieverProf)
@@ -699,7 +675,7 @@ namespace ServerMessenger
         }
         private static UserProfile GetStoredUserProfile(string username)
         {
-           lock(_lockStoredProfiles) return storedUserProfiles.First(prof => prof.UserName.Equals(username));
+            return context.GetUserByName(username);
         }
 
         private static void ValidateFriendRequestInformation(Socket client, string userNameRequest)
@@ -778,25 +754,22 @@ namespace ServerMessenger
 
         private static void ValidateOnlineUsersInformation(Socket client, ChatProtocol protocol)
         {
-            if (!authorizedClients.ContainsKey(client))
+            if (!context.GetAuthorizedClients().ContainsKey(client))
                 throw new Exception("Error: To see online users you must be logged in");
             if (!protocol.Payload.Equals(String.Empty))
                 throw new Exception("Error: Online users command must be written alone");
         }
         private static UserProfile GetProfileConnectedToClient(Socket client)
         {
-           lock(_lockAuthorizedClients) return authorizedClients.First(auth => ClientsAreEquals(auth.Key, client)).Value;
+            return context.GetProfileFromClient(client);
         }
 
         private static string GenerateConnectedUsersPayload(Socket client)
         {
             string connectedUsers = "";
             UserProfile clientProf, profile, lastProfile;
-            List<UserProfile> onlineProf;
-            lock (_lockAuthorizedClients)
-            {
-                onlineProf = authorizedClients.Select(d => d.Value).ToList();
-            }
+            List<UserProfile> onlineProf;            
+            onlineProf = context.GetAuthorizedClients().Select(d => d.Value).ToList();
             clientProf = GetProfileConnectedToClient(client);
             lastProfile = onlineProf.Last();
             for (int index = 0; index < onlineProf.Count; index++)
@@ -825,7 +798,7 @@ namespace ServerMessenger
         private static void ProcessLogoutRequest(Socket client, ChatProtocol protocol)
         {
             LogoutVerification(client, protocol);
-            lock(_lockAuthorizedClients) authorizedClients.Remove(client);
+            context.RemoveClientAuthorization(client);
             ChatProtocol response = protManager.CreateResponseOkProtocol(protocol.Command);
             NotifyClientWithPackage(client, response.Package);
         }
@@ -861,8 +834,8 @@ namespace ServerMessenger
         private static void CreateProfileAndLogin(Socket client, string user, string password)
         {
             UserProfile profile = new UserProfile(user, password);
-            lock (_lockStoredProfiles) storedUserProfiles.Add(profile);
-            lock (_lockAuthorizedClients) authorizedClients.Add(client, profile);
+            context.AddUserProfile(profile);
+            context.AddClientAuthorization(client, profile);
         }
 
         private static void ProcessLoginRequest(Socket client, ChatProtocol protocol)
@@ -901,7 +874,7 @@ namespace ServerMessenger
         {
             try
             {
-                lock (_lock)
+                lock (_lockClientResponse)
                 {
                     Byte[] responseBuffer = Encoding.ASCII.GetBytes(resPackage);
                     NetworkStream stream = new NetworkStream(client);
@@ -917,17 +890,13 @@ namespace ServerMessenger
 
         private static bool ClientIsConnected(Socket client)
         {
-          lock(_lockAuthorizedClients) return authorizedClients.ContainsKey(client);
-        }
-        private static bool ClientsAreEquals(Socket client1, Socket client2)
-        {
-            return client1.RemoteEndPoint.Equals(client2.RemoteEndPoint);
+            return context.GetAuthorizedClients().ContainsKey(client);
         }
 
         private static void LoginClientAsUserProfile(Socket client, string user, string password)
         {
             var profile = ExtractProfileFromAttributes(user, password);
-            lock(_lockAuthorizedClients) authorizedClients.Add(client, profile);
+            context.AddClientAuthorization(client, profile);
             profile.NewConnectionMade();
         }
 
@@ -943,18 +912,17 @@ namespace ServerMessenger
 
         private static bool ProfileIsConnectedToAClient(string user)
         {
-            lock (_lockAuthorizedClients) return authorizedClients.Any(auth => auth.Value.UserName.Equals(user));
+            return context.GetAuthorizedClients().Any(auth => auth.Value.UserName.Equals(user));
         }
 
         private static bool ProfileUserNameExists(string user)
         {
-           lock (_lockStoredProfiles) return storedUserProfiles.Exists(us => us.UserName.Equals(user));
+           return context.GetUserProfiles().Exists(us => us.UserName.Equals(user));
         }
 
         private static UserProfile ExtractProfileFromAttributes(string user, string password)
         {
-           UserProfile profile = null;
-           lock( _lockStoredProfiles) profile = storedUserProfiles.Find(prof => prof.UserName.Equals(user) && prof.Password.Equals(password));
+           UserProfile profile = context.GetUserProfiles().Find(prof => prof.UserName.Equals(user) && prof.Password.Equals(password));
            if (profile == null)
                throw new Exception("Error: Incorrect profile password");
            return profile;            

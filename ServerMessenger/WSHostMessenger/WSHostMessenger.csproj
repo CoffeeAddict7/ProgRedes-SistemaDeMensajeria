@@ -4,15 +4,18 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{8AD99637-1D38-4973-BBFB-E714C90AE5B5}</ProjectGuid>
-    <OutputType>Library</OutputType>
+    <ProjectGuid>{C8CD1E8A-A339-4667-BA88-60D64B51B0CC}</ProjectGuid>
+    <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>MessengerDomain</RootNamespace>
-    <AssemblyName>MessengerDomain</AssemblyName>
+    <RootNamespace>WSHostMessenger</RootNamespace>
+    <AssemblyName>WSHostMessenger</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <WcfConfigValidationEnabled>True</WcfConfigValidationEnabled>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -22,6 +25,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -31,9 +35,11 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Runtime.Remoting" />
     <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.ServiceModel" />
+    <Reference Include="System.ServiceModel.Channels" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -42,11 +48,27 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ChatData.cs" />
-    <Compile Include="ChatProtocol.cs" />
+    <Compile Include="IWSUserProfiles.cs" />
+    <Compile Include="WSUserProfiles.cs" />
+    <Compile Include="Service.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ProtocolManager.cs" />
-    <Compile Include="UserProfile.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\ClientMessenger\MessengerDomain\ProtocolDomain.csproj">
+      <Project>{8AD99637-1D38-4973-BBFB-E714C90AE5B5}</Project>
+      <Name>ProtocolDomain</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\ClientMessenger\Persistence\Persistence.csproj">
+      <Project>{3E93662C-E212-4CD5-B770-2BD7E550F13E}</Project>
+      <Name>Persistence</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ServerMessenger\ServerMessenger.csproj">
+      <Project>{0BBEB1A4-D078-4024-8AE1-95F28F77B826}</Project>
+      <Name>ServerMessenger</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

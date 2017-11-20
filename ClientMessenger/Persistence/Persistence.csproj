@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{8AD99637-1D38-4973-BBFB-E714C90AE5B5}</ProjectGuid>
+    <ProjectGuid>{3E93662C-E212-4CD5-B770-2BD7E550F13E}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>MessengerDomain</RootNamespace>
-    <AssemblyName>MessengerDomain</AssemblyName>
+    <RootNamespace>Persistence</RootNamespace>
+    <AssemblyName>Persistence</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -31,9 +31,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -42,11 +42,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ChatData.cs" />
-    <Compile Include="ChatProtocol.cs" />
+    <Compile Include="Context.cs" />
+    <Compile Include="IUserRepository.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ProtocolManager.cs" />
-    <Compile Include="UserProfile.cs" />
+    <Compile Include="UserRepository.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\MessengerDomain\ProtocolDomain.csproj">
+      <Project>{8ad99637-1d38-4973-bbfb-e714c90ae5b5}</Project>
+      <Name>ProtocolDomain</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

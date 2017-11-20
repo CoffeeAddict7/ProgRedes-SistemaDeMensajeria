@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:tns="http://tempuri.org/" elementFormDefault="qualified" targetNamespace="http://tempuri.org/" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:import schemaLocation="http://localhost:8719/MessengerService?xsd=xsd2" namespace="http://schemas.datacontract.org/2004/07/MessengerDomain" />
+  <xs:element name="GetUserProfile">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="username" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="GetUserProfileResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element xmlns:q1="http://schemas.datacontract.org/2004/07/MessengerDomain" minOccurs="0" name="GetUserProfileResult" nillable="true" type="q1:UserProfile" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="CreateUserProfile">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="username" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="password" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="CreateUserProfileResponse">
+    <xs:complexType>
+      <xs:sequence />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="ModifyUserProfile">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="profile" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="newUserName" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="newPassword" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="ModifyUserProfileResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="ModifyUserProfileResult" type="xs:boolean" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="DeleteUserProfile">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="username" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="DeleteUserProfileResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="DeleteUserProfileResult" type="xs:boolean" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

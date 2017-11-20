@@ -9,6 +9,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerMessenger", "..\Serve
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProtocolDomain", "MessengerDomain\ProtocolDomain.csproj", "{8AD99637-1D38-4973-BBFB-E714C90AE5B5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WSHostMessenger", "..\ServerMessenger\WSHostMessenger\WSHostMessenger.csproj", "{C8CD1E8A-A339-4667-BA88-60D64B51B0CC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WSMessengerClient", "..\WSMessengerClient\WSMessengerClient\WSMessengerClient.csproj", "{90E75576-09D6-4836-8A0C-A60903FC91A7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Persistence", "Persistence\Persistence.csproj", "{3E93662C-E212-4CD5-B770-2BD7E550F13E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +33,18 @@ Global
 		{8AD99637-1D38-4973-BBFB-E714C90AE5B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8AD99637-1D38-4973-BBFB-E714C90AE5B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8AD99637-1D38-4973-BBFB-E714C90AE5B5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8CD1E8A-A339-4667-BA88-60D64B51B0CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C8CD1E8A-A339-4667-BA88-60D64B51B0CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C8CD1E8A-A339-4667-BA88-60D64B51B0CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C8CD1E8A-A339-4667-BA88-60D64B51B0CC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{90E75576-09D6-4836-8A0C-A60903FC91A7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{90E75576-09D6-4836-8A0C-A60903FC91A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{90E75576-09D6-4836-8A0C-A60903FC91A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{90E75576-09D6-4836-8A0C-A60903FC91A7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3E93662C-E212-4CD5-B770-2BD7E550F13E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3E93662C-E212-4CD5-B770-2BD7E550F13E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3E93662C-E212-4CD5-B770-2BD7E550F13E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3E93662C-E212-4CD5-B770-2BD7E550F13E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
