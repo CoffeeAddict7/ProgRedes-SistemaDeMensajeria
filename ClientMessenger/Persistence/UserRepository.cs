@@ -7,7 +7,7 @@ using MessengerDomain;
 
 namespace Persistence
 {
-    public class UserRepository : IUserRepository
+    public class UserRepository : MarshalByRefObject, IUserRepository 
     {
         private Context context;
 

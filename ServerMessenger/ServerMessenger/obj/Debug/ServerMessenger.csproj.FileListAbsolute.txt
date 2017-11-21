@@ -19,3 +19,17 @@ Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Debug\Messe
 Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Debug\ServerMessenger.csprojResolveAssemblyReference.cache
 Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Debug\ServerMessenger.exe
 Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Debug\ServerMessenger.pdb
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Debug\ServerMessenger.exe.config
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Debug\ServerMessenger.exe
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Debug\ServerMessenger.pdb
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Debug\ClientMessenger.exe
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Debug\MessengerDomain.dll
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Debug\Persistence.dll
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Debug\ClientMessenger.pdb
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Debug\MessengerDomain.pdb
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Debug\Persistence.pdb
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Debug\ServerMessenger.csprojResolveAssemblyReference.cache
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Debug\ServerMessenger.exe
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Debug\ServerMessenger.pdb
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Debug\ServerMSQM.dll
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Debug\ServerMSQM.pdb

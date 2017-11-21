@@ -107,16 +107,16 @@ namespace WSMessengerClient.ServiceUserRepository {
         System.Threading.Tasks.Task CreateUserProfileAsync(string username, string password);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IWSUserProfile/ModifyUserProfile", ReplyAction="http://tempuri.org/IWSUserProfile/ModifyUserProfileResponse")]
-        bool ModifyUserProfile(string profile, string newUserName, string newPassword);
+        void ModifyUserProfile(string profile, string newUserName, string newPassword);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IWSUserProfile/ModifyUserProfile", ReplyAction="http://tempuri.org/IWSUserProfile/ModifyUserProfileResponse")]
-        System.Threading.Tasks.Task<bool> ModifyUserProfileAsync(string profile, string newUserName, string newPassword);
+        System.Threading.Tasks.Task ModifyUserProfileAsync(string profile, string newUserName, string newPassword);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IWSUserProfile/DeleteUserProfile", ReplyAction="http://tempuri.org/IWSUserProfile/DeleteUserProfileResponse")]
-        bool DeleteUserProfile(string username);
+        void DeleteUserProfile(string username);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IWSUserProfile/DeleteUserProfile", ReplyAction="http://tempuri.org/IWSUserProfile/DeleteUserProfileResponse")]
-        System.Threading.Tasks.Task<bool> DeleteUserProfileAsync(string username);
+        System.Threading.Tasks.Task DeleteUserProfileAsync(string username);
     }
     
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.ServiceModel", "4.0.0.0")]
@@ -162,19 +162,19 @@ namespace WSMessengerClient.ServiceUserRepository {
             return base.Channel.CreateUserProfileAsync(username, password);
         }
         
-        public bool ModifyUserProfile(string profile, string newUserName, string newPassword) {
-            return base.Channel.ModifyUserProfile(profile, newUserName, newPassword);
+        public void ModifyUserProfile(string profile, string newUserName, string newPassword) {
+            base.Channel.ModifyUserProfile(profile, newUserName, newPassword);
         }
         
-        public System.Threading.Tasks.Task<bool> ModifyUserProfileAsync(string profile, string newUserName, string newPassword) {
+        public System.Threading.Tasks.Task ModifyUserProfileAsync(string profile, string newUserName, string newPassword) {
             return base.Channel.ModifyUserProfileAsync(profile, newUserName, newPassword);
         }
         
-        public bool DeleteUserProfile(string username) {
-            return base.Channel.DeleteUserProfile(username);
+        public void DeleteUserProfile(string username) {
+            base.Channel.DeleteUserProfile(username);
         }
         
-        public System.Threading.Tasks.Task<bool> DeleteUserProfileAsync(string username) {
+        public System.Threading.Tasks.Task DeleteUserProfileAsync(string username) {
             return base.Channel.DeleteUserProfileAsync(username);
         }
     }

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.ServiceModel;
 using System.ServiceModel.Description;
-using System.Runtime.Remoting.Channels.Tcp;
-using System.Runtime.Remoting.Channels;
 using Persistence;
 namespace WSHostMessenger
 {
@@ -33,8 +31,7 @@ namespace WSHostMessenger
                 //Open
                 messengerServiceHost.Open();
                 Console.WriteLine("Service is live now at: {0}", httpBaseAddress);
-                Console.ReadKey();
-               
+                Console.ReadKey();               
             }
             catch (Exception ex)
             {

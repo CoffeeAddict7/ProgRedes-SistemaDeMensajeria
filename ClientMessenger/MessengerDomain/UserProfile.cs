@@ -5,6 +5,7 @@ using System.Runtime.Serialization;
 
 namespace MessengerDomain
 {
+    [Serializable]
     [DataContract]
     public class UserProfile
     {

@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WSMessengerClient", "..\WSM
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Persistence", "Persistence\Persistence.csproj", "{3E93662C-E212-4CD5-B770-2BD7E550F13E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerMSQM", "ServerMSQM\ServerMSQM.csproj", "{0F790509-3B5B-4476-AA3E-4BDF71627700}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +47,10 @@ Global
 		{3E93662C-E212-4CD5-B770-2BD7E550F13E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3E93662C-E212-4CD5-B770-2BD7E550F13E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3E93662C-E212-4CD5-B770-2BD7E550F13E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0F790509-3B5B-4476-AA3E-4BDF71627700}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0F790509-3B5B-4476-AA3E-4BDF71627700}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0F790509-3B5B-4476-AA3E-4BDF71627700}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0F790509-3B5B-4476-AA3E-4BDF71627700}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
