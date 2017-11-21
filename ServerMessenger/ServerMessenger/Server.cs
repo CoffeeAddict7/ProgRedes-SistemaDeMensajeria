@@ -8,12 +8,11 @@ using System.Threading;
 using System.Linq;
 using System.Configuration;
 using System.Net;
-using System.Runtime;
 using System.Runtime.Remoting;
 using System.Runtime.Remoting.Channels;
 using System.Runtime.Remoting.Channels.Tcp;
 using Persistence;
-using ServerMSQM;
+using ServerMSMQ;
 
 namespace ServerMessenger
 {
@@ -24,7 +23,7 @@ namespace ServerMessenger
         private static ProtocolManager protManager;
         private static string clientFilesDirectory;
         private static Context context;
-        private static LogManager serverLog;
+        private static AppLog serverLog;
         static readonly object _lockClientResponse = new object();
 
         static void Main(string[] args)
@@ -71,7 +70,7 @@ namespace ServerMessenger
             try
             {
                 RegisterRemotingUserRepository();
-                serverLog = new LogManager();
+                serverLog = new AppLog("127.0.0.1");
                 context = Context.GetInstance();
                 InitializeServerAttributes();
                 EstablishConnection();
@@ -130,29 +129,10 @@ namespace ServerMessenger
                 case "USERS":
                     UsersCommand();
                     break;
-                case "PEAK LOGS":
-                    PeakLogsCommand();
-                    break;
-                case "CLEAN LOGS":
-                    CleanLogsCommand();
-                    break;
                 default:
                     Console.WriteLine("> Wrong command");
                     break;
             }   
-        }
-
-        private static void CleanLogsCommand()
-        {
-            serverLog.RemoveAllMessages();
-            Console.WriteLine("> Removed all server logs");
-        }
-
-        private static void PeakLogsCommand()
-        {
-            List<string> messagesLog = serverLog.GetAllMessages();
-            foreach (var msg in messagesLog)            
-                Console.WriteLine(msg);            
         }
 
         private static void ExecuteCommand()
@@ -368,6 +348,8 @@ namespace ServerMessenger
             UploadFileToServerDirectory(client, fileBytes, storagePath);
             ChatProtocol responseAfterUpload = protManager.CreateResponseOkProtocol(chatMsg.Command, "File upload completed!");
             NotifyClientWithPackage(client, responseAfterUpload.Package);
+            UserProfile profile = GetProfileConnectedToClient(client);
+            serverLog.SendMessage("Upload file", profile.UserName, "Uploaded file " + fileName + "of size " +fileBytes%1000 + " KB");
         }
 
         private static void ValidateClientConnected(Socket client, string command)
@@ -416,9 +398,13 @@ namespace ServerMessenger
                 if (!ProfileUserNameExists(profileForReading))
                     throw new Exception("Error: Profile doesn't exists");
                 RespondWithPendingMessagesFromProfile(client, profile, profileForReading);
+                serverLog.SendMessage("Unseen messages view", profile.UserName, "Server response with messages from " + profileForReading);
             }
             else
-                RespondWithProfilesOfPendingMessages(client, chatMsg, profile);            
+            {
+                RespondWithProfilesOfPendingMessages(client, chatMsg, profile);
+                serverLog.SendMessage("Unseen messages view", profile.UserName, "Server response with usernames that left messages");
+            }      
         }
 
         private static void RespondWithPendingMessagesFromProfile(Socket client, UserProfile profile, string profileForReading)

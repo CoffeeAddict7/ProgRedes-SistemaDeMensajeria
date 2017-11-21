@@ -68,9 +68,9 @@
       <Project>{3E93662C-E212-4CD5-B770-2BD7E550F13E}</Project>
       <Name>Persistence</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\ClientMessenger\ServerMSQM\ServerMSQM.csproj">
+    <ProjectReference Include="..\..\ClientMessenger\ServerMSQM\ServerMSMQ.csproj">
       <Project>{0F790509-3B5B-4476-AA3E-4BDF71627700}</Project>
-      <Name>ServerMSQM</Name>
+      <Name>ServerMSMQ</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

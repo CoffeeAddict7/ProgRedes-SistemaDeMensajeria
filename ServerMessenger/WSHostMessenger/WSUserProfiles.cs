@@ -4,7 +4,7 @@ using System;
 using System.ServiceModel;
 using System.Runtime.Remoting.Channels.Tcp;
 using System.Runtime.Remoting.Channels;
-using ServerMSQM;
+using ServerMSMQ;
 
 namespace WSHostMessenger
 {
@@ -12,11 +12,11 @@ namespace WSHostMessenger
     public class WSUserProfiles : IWSUserProfile
     {
         private IUserRepository UserRepository;
-        private LogManager serverLog;
+        private AppLog serverLog;
         public WSUserProfiles()
         {
             ActivateRemotingUserRepository();
-            serverLog = new LogManager("127.0.0.1");
+          //  serverLog = new LogManager("127.0.0.1");
         }
 
         private void ActivateRemotingUserRepository()
@@ -43,11 +43,11 @@ namespace WSHostMessenger
             try
             {
                 UserRepository.DeleteUserProfile(username);
-                serverLog.SendMessage("Delete user", username, "Deletion successfully");
+              //  serverLog.SendMessage("Delete user", username, "Deletion successfully");
             }
             catch (Exception ex)
             {
-                serverLog.SendMessage("Delete user", username, ex.Message);
+               // serverLog.SendMessage("Delete user", username, ex.Message);
                 throw new FaultException(ex.Message);
             }
         }
@@ -57,11 +57,11 @@ namespace WSHostMessenger
             try
             {
                 UserRepository.CreateUserProfile(username, password);
-                serverLog.SendMessage("Create user", username, "Registration successfully");
+                //serverLog.SendMessage("Create user", username, "Registration successfully");
             }
             catch (Exception ex)
             {
-                serverLog.SendMessage("Create user", username, ex.Message);
+               // serverLog.SendMessage("Create user", username, ex.Message);
                 throw new FaultException(ex.Message);
             }
         }
@@ -71,11 +71,11 @@ namespace WSHostMessenger
             try
             {
                 UserRepository.ModifyUserProfile(profile, newUserName, newPassword);
-                serverLog.SendMessage("Modify user", profile, "Name/Password modified successfully to {"+newUserName +"}/{****}");
+           //     serverLog.SendMessage("Modify user", profile, "Name/Password modified successfully to {"+newUserName +"}/{****}");
             }
             catch (Exception ex)
             {
-                serverLog.SendMessage("Modify user", profile, ex.Message);
+             //   serverLog.SendMessage("Modify user", profile, ex.Message);
                 throw new FaultException(ex.Message);
             }
         }
