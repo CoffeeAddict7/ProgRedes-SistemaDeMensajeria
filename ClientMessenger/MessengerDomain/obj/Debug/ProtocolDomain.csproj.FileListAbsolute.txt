@@ -7,3 +7,8 @@ Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\MessengerDomain\bin\Debug\Messe
 Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\MessengerDomain\obj\Debug\MessengerDomain.dll
 Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\MessengerDomain\obj\Debug\MessengerDomain.pdb
 Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\MessengerDomain\obj\Debug\ProtocolDomain.csprojResolveAssemblyReference.cache
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ClientMessenger\MessengerDomain\bin\Debug\MessengerDomain.dll
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ClientMessenger\MessengerDomain\bin\Debug\MessengerDomain.pdb
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ClientMessenger\MessengerDomain\obj\Debug\ProtocolDomain.csprojResolveAssemblyReference.cache
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ClientMessenger\MessengerDomain\obj\Debug\MessengerDomain.dll
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ClientMessenger\MessengerDomain\obj\Debug\MessengerDomain.pdb

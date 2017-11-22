@@ -16,3 +16,10 @@ Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Debug\Clien
 Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Debug\ClientMessenger.exe
 Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Debug\ClientMessenger.pdb
 \\psf\Martin\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Debug\ClientMessenger.exe.config
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Debug\ClientMessenger.exe
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Debug\ClientMessenger.pdb
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Debug\MessengerDomain.dll
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Debug\MessengerDomain.pdb
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Debug\ClientMessenger.csprojResolveAssemblyReference.cache
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Debug\ClientMessenger.exe
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Debug\ClientMessenger.pdb
