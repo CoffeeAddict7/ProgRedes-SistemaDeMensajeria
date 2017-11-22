@@ -28,7 +28,6 @@ namespace WSMessengerClient
             UserControl createProfile = new CreateUserProfile(service);
             this.panelMainMenu.Controls.Add(createProfile);
         }
-
         private void stripDelete_Click(object sender, EventArgs e)
         {
             this.panelMainMenu.Controls.Clear();
@@ -42,5 +41,6 @@ namespace WSMessengerClient
             UserControl modifyProfile = new ModifyUserProfile(service);
             this.panelMainMenu.Controls.Add(modifyProfile);
         }
+
     }
 }

@@ -87,11 +87,6 @@ namespace MessengerDomain
             string package = BuildPackage(ChatData.REQUEST_HEADER, cmd, payload);
             return new ChatProtocol(package);
         }
-        public ChatProtocol CreateFileRequestProtocol(string cmd, string name, byte[] content)
-        {
-            string package = null;
-            return new ChatProtocol(package);
-        }
 
         private string BuildPackage(string header, string cmd, string payload)
         {

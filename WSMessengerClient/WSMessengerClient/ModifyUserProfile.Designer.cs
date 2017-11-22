@@ -135,7 +135,7 @@
             this.Controls.Add(this.txtUserProfile);
             this.Controls.Add(this.lblUserProfile);
             this.Name = "ModifyUserProfile";
-            this.Size = new System.Drawing.Size(836, 827);
+            this.Size = new System.Drawing.Size(606, 493);
             this.groupBoxUserInfo.ResumeLayout(false);
             this.groupBoxUserInfo.PerformLayout();
             this.ResumeLayout(false);

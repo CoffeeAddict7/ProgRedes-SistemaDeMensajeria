@@ -29,8 +29,6 @@
         private void InitializeComponent()
         {
             this.groupBoxUserInfo = new System.Windows.Forms.GroupBox();
-            this.txtPassword = new System.Windows.Forms.TextBox();
-            this.lblPassword = new System.Windows.Forms.Label();
             this.btnDelete = new System.Windows.Forms.Button();
             this.txtUsername = new System.Windows.Forms.TextBox();
             this.txtNumConnections = new System.Windows.Forms.TextBox();
@@ -44,8 +42,6 @@
             // 
             // groupBoxUserInfo
             // 
-            this.groupBoxUserInfo.Controls.Add(this.txtPassword);
-            this.groupBoxUserInfo.Controls.Add(this.lblPassword);
             this.groupBoxUserInfo.Controls.Add(this.btnDelete);
             this.groupBoxUserInfo.Controls.Add(this.txtUsername);
             this.groupBoxUserInfo.Controls.Add(this.txtNumConnections);
@@ -54,32 +50,15 @@
             this.groupBoxUserInfo.ForeColor = System.Drawing.Color.Maroon;
             this.groupBoxUserInfo.Location = new System.Drawing.Point(19, 117);
             this.groupBoxUserInfo.Name = "groupBoxUserInfo";
-            this.groupBoxUserInfo.Size = new System.Drawing.Size(512, 292);
+            this.groupBoxUserInfo.Size = new System.Drawing.Size(512, 251);
             this.groupBoxUserInfo.TabIndex = 9;
             this.groupBoxUserInfo.TabStop = false;
-            this.groupBoxUserInfo.Text = "User info";
-            // 
-            // txtPassword
-            // 
-            this.txtPassword.Location = new System.Drawing.Point(239, 178);
-            this.txtPassword.Name = "txtPassword";
-            this.txtPassword.Size = new System.Drawing.Size(252, 31);
-            this.txtPassword.TabIndex = 10;
-            // 
-            // lblPassword
-            // 
-            this.lblPassword.AutoSize = true;
-            this.lblPassword.ForeColor = System.Drawing.Color.Black;
-            this.lblPassword.Location = new System.Drawing.Point(34, 178);
-            this.lblPassword.Name = "lblPassword";
-            this.lblPassword.Size = new System.Drawing.Size(106, 25);
-            this.lblPassword.TabIndex = 9;
-            this.lblPassword.Text = "Password";
+            this.groupBoxUserInfo.Text = "User to delete";
             // 
             // btnDelete
             // 
             this.btnDelete.ForeColor = System.Drawing.Color.Black;
-            this.btnDelete.Location = new System.Drawing.Point(372, 226);
+            this.btnDelete.Location = new System.Drawing.Point(372, 182);
             this.btnDelete.Name = "btnDelete";
             this.btnDelete.Size = new System.Drawing.Size(119, 50);
             this.btnDelete.TabIndex = 8;
@@ -156,7 +135,7 @@
             this.Controls.Add(this.txtUserProfile);
             this.Controls.Add(this.lblUserProfile);
             this.Name = "DeleteUserProfile";
-            this.Size = new System.Drawing.Size(699, 640);
+            this.Size = new System.Drawing.Size(599, 505);
             this.groupBoxUserInfo.ResumeLayout(false);
             this.groupBoxUserInfo.PerformLayout();
             this.ResumeLayout(false);
@@ -167,8 +146,6 @@
         #endregion
 
         private System.Windows.Forms.GroupBox groupBoxUserInfo;
-        private System.Windows.Forms.TextBox txtPassword;
-        private System.Windows.Forms.Label lblPassword;
         private System.Windows.Forms.Button btnDelete;
         private System.Windows.Forms.TextBox txtUsername;
         private System.Windows.Forms.TextBox txtNumConnections;

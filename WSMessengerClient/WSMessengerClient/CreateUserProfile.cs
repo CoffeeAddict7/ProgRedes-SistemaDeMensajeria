@@ -1,11 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Drawing;
-using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace WSMessengerClient
@@ -27,15 +20,16 @@ namespace WSMessengerClient
 
             try
             {
-                if (CommonBehavior.UserProfileValidInfo(username, password)){
+                if (CommonBehavior.UserProfileValidInfo(username, password))
+                {
                     service.CreateUserProfile(username, password);
                     MessageBox.Show("User created successfully!");
                 }
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 MessageBox.Show(ex.Message);
-            }            
+            }
         }
-
     }
 }

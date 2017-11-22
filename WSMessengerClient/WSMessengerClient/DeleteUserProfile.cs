@@ -1,11 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Drawing;
-using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace WSMessengerClient
@@ -16,6 +9,8 @@ namespace WSMessengerClient
         public DeleteUserProfile(ServiceUserRepository.WSUserProfileClient myServ)
         {
             InitializeComponent();
+            txtNumConnections.ReadOnly = true;
+            txtUsername.ReadOnly = true;
             service = myServ;
         }
 
@@ -48,7 +43,6 @@ namespace WSMessengerClient
                 var result = service.GetUserProfile(userToFind);
                 txtNumConnections.Text = result.NumberOfConnections.ToString();
                 txtUsername.Text = result.UserName;
-                txtPassword.Text = result.Password;
             }
             catch (Exception ex)
             {
@@ -61,7 +55,6 @@ namespace WSMessengerClient
         {
             txtNumConnections.Text = String.Empty;
             txtUsername.Text = String.Empty;
-            txtPassword.Text = String.Empty;
             txtUserProfile.Text = String.Empty;
         }
     }

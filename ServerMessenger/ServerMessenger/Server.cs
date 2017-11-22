@@ -55,6 +55,7 @@ namespace ServerMessenger
                     thread.Start();
                     context.AddActiveClient(clientSocket, thread);
                     context.AddClientMessenger(clientSocket, clientSocketMessenger);
+                    Console.WriteLine("> Client connected from [" + clientSocket.RemoteEndPoint + "]");
                 }
                 catch (Exception ex)
                 {
@@ -70,8 +71,6 @@ namespace ServerMessenger
             try
             {
                 RegisterRemotingUserRepository();
-                serverLog = new AppLog("127.0.0.1");
-                context = Context.GetInstance();
                 InitializeServerAttributes();
                 EstablishConnection();
             }
@@ -98,8 +97,7 @@ namespace ServerMessenger
             IPEndPoint serverEndPoint = new IPEndPoint(IPAddress.Parse(ip), port);
             tcpServer.Bind(serverEndPoint);
             tcpServer.Listen(ChatData.MAX_ACTIVE_CONN);
-            Console.WriteLine("Start waiting for clients");
-            Console.WriteLine("Connected at: " + serverEndPoint.ToString());
+            Console.WriteLine("> Server connected at [" + serverEndPoint.ToString() + "] Waiting for clients ... ");
         }
 
         private static void InitializeServerAttributes()
@@ -108,6 +106,10 @@ namespace ServerMessenger
             protManager = new ProtocolManager();
             clientFilesDirectory = "UserFiles";
             Directory.CreateDirectory(clientFilesDirectory);
+            ConfigurationManager.RefreshSection("appSettings");
+            string logsIp = ConfigurationManager.AppSettings["LogsIp"];
+            serverLog = new AppLog(logsIp);
+            context = Context.GetInstance();
         }
 
         private static void ReadServerCommands()
@@ -224,7 +226,6 @@ namespace ServerMessenger
 
         private static void ProcessMessage(Socket client, ChatProtocol chatMsg)
         {
-            Console.WriteLine("Receive: CMD [" + chatMsg.Command + "] Requested by [" + client.RemoteEndPoint + "]");
             try
             {
                 ValidateClientHeader(chatMsg);
@@ -234,8 +235,19 @@ namespace ServerMessenger
             {
                 ChatProtocol response = protManager.CreateResponseErrorProtocol(chatMsg.Command, ex.Message);
                 NotifyClientWithPackage(client, response.Package);
+                SendLogFromFailedCommandRequest(client, chatMsg, ex.Message);
             }
-            Console.WriteLine("Response to: [" + client.RemoteEndPoint + "] of CMD [" + chatMsg.Command + "]");
+        }
+
+        private static void SendLogFromFailedCommandRequest(Socket client, ChatProtocol chatMsg, string errorMsg)
+        {
+            string username = "Unidentified";
+            if (ClientIsConnected(client))
+            {
+                UserProfile profile = GetProfileConnectedToClient(client);
+                username = profile.UserName;
+            }
+            serverLog.SendMessage(chatMsg.Command, username, errorMsg);
         }
 
         private static void ProcessByProtocolCommmand(Socket client, ChatProtocol chatMsg)
@@ -286,10 +298,10 @@ namespace ServerMessenger
         private static void ProcessViewAndDownloadFileRequest(Socket client, ChatProtocol chatMsg)
         {
             ValidateClientConnected(client, "view or download files");
+            UserProfile profile = GetProfileConnectedToClient(client);
             if (chatMsg.Payload.Equals(String.Empty))
             {
-                ChatProtocol response = protManager.CreateResponseOkProtocol(chatMsg.Command, GenerateStoredFilesList());
-                NotifyClientWithPackage(client, response.Package);
+                SendUploadedFilesAndNotify(client, chatMsg, profile);
             }
             else
             {
@@ -298,23 +310,39 @@ namespace ServerMessenger
                     throw new Exception("Error: Selected file name doesnt exists");
 
                 string responsePayload = ChatData.FILE_TO_DOWNLOAD + "#" + chatMsg.Payload + "#" + File.ReadAllBytes(selectedStoredFile).Length;
-                ChatProtocol response = protManager.CreateResponseOkProtocol(chatMsg.Command, responsePayload);
-                NotifyClientWithPackage(client, response.Package);
-                using (NetworkStream netStream = new NetworkStream(client))
+                SendSelectedFileAndNotify(client, chatMsg, profile, selectedStoredFile, responsePayload);
+            }
+        }
+
+        private static void SendSelectedFileAndNotify(Socket client, ChatProtocol chatMsg, UserProfile profile, string selectedStoredFile, string responsePayload)
+        {
+            ChatProtocol response = protManager.CreateResponseOkProtocol(chatMsg.Command, responsePayload);
+            serverLog.SendMessage("Download file", profile.UserName, "Success. File " + chatMsg.Payload + " sent to user");
+            NotifyClientWithPackage(client, response.Package);
+            SendFileToClient(client, selectedStoredFile);
+        }
+
+        private static void SendUploadedFilesAndNotify(Socket client, ChatProtocol chatMsg, UserProfile profile)
+        {
+            ChatProtocol response = protManager.CreateResponseOkProtocol(chatMsg.Command, GenerateStoredFilesList());
+            NotifyClientWithPackage(client, response.Package);
+            serverLog.SendMessage("View uploaded files", profile.UserName, "Server response with files for download");
+        }
+
+        private static void SendFileToClient(Socket client, string selectedStoredFile)
+        {
+            using (NetworkStream netStream = new NetworkStream(client))
+            {
+                using (Stream source = File.OpenRead(selectedStoredFile))
                 {
-                    using (Stream source = File.OpenRead(selectedStoredFile))
+                    byte[] buffer = new byte[2048];
+                    int bytesRead;
+                    while ((bytesRead = source.Read(buffer, 0, buffer.Length)) > 0)
                     {
-                        byte[] buffer = new byte[2048];
-                        int bytesRead;
-                        while ((bytesRead = source.Read(buffer, 0, buffer.Length)) > 0)
-                        {
-                            netStream.Write(buffer, 0, bytesRead);
-                        }
+                        netStream.Write(buffer, 0, bytesRead);
                     }
                 }
-                Console.WriteLine("File Sent!");
             }
-
         }
 
         private static string GenerateStoredFilesList()
@@ -349,7 +377,7 @@ namespace ServerMessenger
             ChatProtocol responseAfterUpload = protManager.CreateResponseOkProtocol(chatMsg.Command, "File upload completed!");
             NotifyClientWithPackage(client, responseAfterUpload.Package);
             UserProfile profile = GetProfileConnectedToClient(client);
-            serverLog.SendMessage("Upload file", profile.UserName, "Uploaded file " + fileName + "of size " +fileBytes%1000 + " KB");
+            serverLog.SendMessage("Upload file", profile.UserName, "Uploaded file " + fileName + "of size " + (fileBytes/1000) + " KB");
         }
 
         private static void ValidateClientConnected(Socket client, string command)

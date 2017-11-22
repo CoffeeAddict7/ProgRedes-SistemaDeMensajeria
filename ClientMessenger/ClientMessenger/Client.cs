@@ -477,7 +477,6 @@ namespace ClientMessenger
             tcpClient = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);            
             var clientEndPoint = new IPEndPoint(IPAddress.Parse(ClientIp), 0);
             tcpClient.Bind(clientEndPoint);
-
             tcpClient.Connect(new IPEndPoint(IPAddress.Parse(ServerIp),ServerPort));      
                   
             Console.WriteLine("Connected to server");
@@ -487,7 +486,6 @@ namespace ClientMessenger
             tcpMessageClient = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             var clientEndPoint = new IPEndPoint(IPAddress.Parse(ClientIp), 0);           
             tcpMessageClient.Bind(clientEndPoint);
-
             tcpMessageClient.Connect(new IPEndPoint(IPAddress.Parse(ServerIp), ServerPort));
         }
     }

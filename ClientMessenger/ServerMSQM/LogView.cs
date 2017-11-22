@@ -3,7 +3,7 @@ using System.Messaging;
 
 namespace ServerMSMQ
 {
-    public class LogView
+    class LogView
     {
         private static string queueName;
         private static MessageQueue msgQueue;

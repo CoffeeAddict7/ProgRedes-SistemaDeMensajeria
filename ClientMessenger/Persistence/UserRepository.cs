@@ -53,7 +53,7 @@ namespace Persistence
         {
             if (!UsernameAlreadyRegistered(profile))
                 throw new Exception("Error: The username to modify doesn't exits");
-            if (UsernameAlreadyRegistered(newUserName))
+            if (UsernameAlreadyRegistered(newUserName) && !profile.Equals(newUserName))
                 throw new Exception("Error: The new username is already registered");
             UserProfile toModify = context.GetUserByName(profile);
             if (ProfileIsOnUse(toModify))

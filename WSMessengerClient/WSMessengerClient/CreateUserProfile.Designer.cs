@@ -32,8 +32,8 @@
             this.lblPassword = new System.Windows.Forms.Label();
             this.txtUserName = new System.Windows.Forms.TextBox();
             this.txtPassword = new System.Windows.Forms.TextBox();
-            this.btnCreate = new System.Windows.Forms.Button();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.btnCreate = new System.Windows.Forms.Button();
             this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -51,7 +51,7 @@
             // 
             this.lblPassword.AutoSize = true;
             this.lblPassword.ForeColor = System.Drawing.Color.Black;
-            this.lblPassword.Location = new System.Drawing.Point(32, 160);
+            this.lblPassword.Location = new System.Drawing.Point(32, 132);
             this.lblPassword.Name = "lblPassword";
             this.lblPassword.Size = new System.Drawing.Size(106, 25);
             this.lblPassword.TabIndex = 1;
@@ -68,36 +68,36 @@
             // txtPassword
             // 
             this.txtPassword.ForeColor = System.Drawing.Color.Black;
-            this.txtPassword.Location = new System.Drawing.Point(173, 157);
+            this.txtPassword.Location = new System.Drawing.Point(173, 132);
             this.txtPassword.Name = "txtPassword";
             this.txtPassword.Size = new System.Drawing.Size(260, 31);
             this.txtPassword.TabIndex = 3;
             // 
-            // btnCreate
-            // 
-            this.btnCreate.ForeColor = System.Drawing.Color.Black;
-            this.btnCreate.Location = new System.Drawing.Point(324, 222);
-            this.btnCreate.Name = "btnCreate";
-            this.btnCreate.Size = new System.Drawing.Size(109, 47);
-            this.btnCreate.TabIndex = 4;
-            this.btnCreate.Text = "Create";
-            this.btnCreate.UseVisualStyleBackColor = true;
-            this.btnCreate.Click += new System.EventHandler(this.btnCreate_Click);
-            // 
             // groupBox1
             // 
-            this.groupBox1.Controls.Add(this.txtUserName);
             this.groupBox1.Controls.Add(this.btnCreate);
+            this.groupBox1.Controls.Add(this.txtUserName);
             this.groupBox1.Controls.Add(this.lblUsername);
             this.groupBox1.Controls.Add(this.txtPassword);
             this.groupBox1.Controls.Add(this.lblPassword);
             this.groupBox1.ForeColor = System.Drawing.Color.Maroon;
             this.groupBox1.Location = new System.Drawing.Point(15, 16);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(468, 356);
+            this.groupBox1.Size = new System.Drawing.Size(471, 314);
             this.groupBox1.TabIndex = 5;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "User information";
+            // 
+            // btnCreate
+            // 
+            this.btnCreate.ForeColor = System.Drawing.Color.Black;
+            this.btnCreate.Location = new System.Drawing.Point(330, 184);
+            this.btnCreate.Name = "btnCreate";
+            this.btnCreate.Size = new System.Drawing.Size(103, 49);
+            this.btnCreate.TabIndex = 4;
+            this.btnCreate.Text = "Create";
+            this.btnCreate.UseVisualStyleBackColor = true;
+            this.btnCreate.Click += new System.EventHandler(this.btnCreate_Click);
             // 
             // CreateUserProfile
             // 
@@ -105,7 +105,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.groupBox1);
             this.Name = "CreateUserProfile";
-            this.Size = new System.Drawing.Size(778, 800);
+            this.Size = new System.Drawing.Size(598, 479);
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
             this.ResumeLayout(false);
@@ -118,7 +118,7 @@
         private System.Windows.Forms.Label lblPassword;
         private System.Windows.Forms.TextBox txtUserName;
         private System.Windows.Forms.TextBox txtPassword;
-        private System.Windows.Forms.Button btnCreate;
         private System.Windows.Forms.GroupBox groupBox1;
+        private System.Windows.Forms.Button btnCreate;
     }
 }

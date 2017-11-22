@@ -1,34 +1,30 @@
 ﻿using System;
 using System.ServiceModel;
 using System.ServiceModel.Description;
-using Persistence;
+using System.Configuration;
+
 namespace WSHostMessenger
 {
     class Service
-    {
-        
+    {        
         static void Main(string[] args)
         {
             ServiceHost messengerServiceHost = null;
             try
             {
-                //Base Address for MessengerService
-                Uri httpBaseAddress = new Uri("http://localhost:8719/MessengerService");
+                ConfigurationManager.RefreshSection("appSettings");
+                string serviceIp = ConfigurationManager.AppSettings["ServiceIp"];
+
+                Uri httpBaseAddress = new Uri("http://"+ serviceIp + ":8719/MessengerService");
      
-                //Instantiate ServiceHost
-                messengerServiceHost = new ServiceHost(typeof(WSHostMessenger.WSUserProfiles),
-                    httpBaseAddress);
+                messengerServiceHost = new ServiceHost(typeof(WSHostMessenger.WSUserProfiles), httpBaseAddress);
 
-                //Add Endpoint to Host
-                messengerServiceHost.AddServiceEndpoint(typeof(WSHostMessenger.IWSUserProfile),
-                                                        new WSHttpBinding(), "");
+                messengerServiceHost.AddServiceEndpoint(typeof(WSHostMessenger.IWSUserProfile), new WSHttpBinding(), "");
 
-                //Metadata Exchange
                 ServiceMetadataBehavior serviceBehavior = new ServiceMetadataBehavior();
                 serviceBehavior.HttpGetEnabled = true;
                 messengerServiceHost.Description.Behaviors.Add(serviceBehavior);
 
-                //Open
                 messengerServiceHost.Open();
                 Console.WriteLine("Service is live now at: {0}", httpBaseAddress);
                 Console.ReadKey();               

@@ -4,7 +4,7 @@ using System;
 using System.ServiceModel;
 using System.Runtime.Remoting.Channels.Tcp;
 using System.Runtime.Remoting.Channels;
-using ServerMSMQ;
+using System.Configuration;
 
 namespace WSHostMessenger
 {
@@ -12,18 +12,18 @@ namespace WSHostMessenger
     public class WSUserProfiles : IWSUserProfile
     {
         private IUserRepository UserRepository;
-        private AppLog serverLog;
         public WSUserProfiles()
         {
             ActivateRemotingUserRepository();
-          //  serverLog = new LogManager("127.0.0.1");
         }
 
         private void ActivateRemotingUserRepository()
         {
+            ConfigurationManager.RefreshSection("appSettings");
+            string remotingIp = ConfigurationManager.AppSettings["RemotingIp"];
             TcpClientChannel channel = new TcpClientChannel();
             ChannelServices.RegisterChannel(channel, false);
-            UserRepository = (IUserRepository)Activator.GetObject(typeof(IUserRepository), "tcp://127.0.0.1:7777/Users");
+            UserRepository = (IUserRepository)Activator.GetObject(typeof(IUserRepository), "tcp://"+remotingIp+":7777/Users");
         }
 
         public UserProfile GetUserProfile(string username)
@@ -32,7 +32,7 @@ namespace WSHostMessenger
             {
                return UserRepository.GetUserProfile(username);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 throw new FaultException("Error: User not found");
             }
@@ -43,11 +43,9 @@ namespace WSHostMessenger
             try
             {
                 UserRepository.DeleteUserProfile(username);
-              //  serverLog.SendMessage("Delete user", username, "Deletion successfully");
             }
             catch (Exception ex)
-            {
-               // serverLog.SendMessage("Delete user", username, ex.Message);
+            {               
                 throw new FaultException(ex.Message);
             }
         }
@@ -57,11 +55,9 @@ namespace WSHostMessenger
             try
             {
                 UserRepository.CreateUserProfile(username, password);
-                //serverLog.SendMessage("Create user", username, "Registration successfully");
             }
             catch (Exception ex)
             {
-               // serverLog.SendMessage("Create user", username, ex.Message);
                 throw new FaultException(ex.Message);
             }
         }
@@ -71,11 +67,9 @@ namespace WSHostMessenger
             try
             {
                 UserRepository.ModifyUserProfile(profile, newUserName, newPassword);
-           //     serverLog.SendMessage("Modify user", profile, "Name/Password modified successfully to {"+newUserName +"}/{****}");
             }
             catch (Exception ex)
             {
-             //   serverLog.SendMessage("Modify user", profile, ex.Message);
                 throw new FaultException(ex.Message);
             }
         }

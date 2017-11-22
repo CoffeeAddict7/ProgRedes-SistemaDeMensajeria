@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
-using System;
 using System.Linq;
 
 namespace Persistence
@@ -11,14 +10,15 @@ namespace Persistence
     {
         public static Context instance;
 
-        private List<UserProfile> storedUserProfiles;
         private Dictionary<Socket, UserProfile> authorizedClients;
-        private Dictionary<Socket, Thread> activeClientThreads;
         private List<KeyValuePair<Socket, Socket>> clientAndMessenger;
+        private List<UserProfile> storedUserProfiles;
+        private Dictionary<Socket, Thread> activeClientThreads;
 
         static readonly object _lockAuthorizedClients = new object();
         static readonly object _lockClientAndMessenger = new object();
         static readonly object _lockStoredProfiles = new object();
+        static readonly object _lockActiveClients = new object();
 
         private Context()
        {
@@ -54,55 +54,77 @@ namespace Persistence
 
         public void AddClientMessenger(Socket clientSocket, Socket messengerSocket)
         {
-            clientAndMessenger.Add(new KeyValuePair<Socket, Socket>(clientSocket, messengerSocket));
+            lock(_lockClientAndMessenger)
+                clientAndMessenger.Add(new KeyValuePair<Socket, Socket>(clientSocket, messengerSocket));
         }
 
         public void AddActiveClient(Socket client, Thread thread)
         {
-            activeClientThreads.Add(client, thread);
+            lock(_lockAuthorizedClients)
+                activeClientThreads.Add(client, thread);
         }
         public List<UserProfile> GetUserProfiles()
         {
-            return storedUserProfiles;
+            List<UserProfile> profiles;
+            lock (_lockStoredProfiles)
+                profiles = storedUserProfiles;
+
+            return profiles;
         }
         public Dictionary<Socket, UserProfile> GetAuthorizedClients()
         {
-            return authorizedClients;
+            Dictionary<Socket, UserProfile> authClients;
+            lock (_lockAuthorizedClients)
+                authClients = authorizedClients;
+            return authClients;
         }
 
         public Dictionary<Socket, Thread> GetActiveClients()
         {
-            return activeClientThreads;
+            Dictionary<Socket, Thread> actClients;
+            lock (_lockActiveClients)
+                actClients = activeClientThreads;
+            return actClients;
         }
 
         public void RemoveAllActiveClients()
         {
-            activeClientThreads = new Dictionary<Socket, Thread>();
+            lock(_lockActiveClients)
+                activeClientThreads = new Dictionary<Socket, Thread>();
         }
 
         public void RemoveActiveClient(Socket client)
         {
-            activeClientThreads.Remove(client);
+            lock(_lockActiveClients)
+                activeClientThreads.Remove(client);
         }
 
         public void RemoveClientAuthorization(Socket client)
         {
-            lock (_lockAuthorizedClients) authorizedClients.Remove(client);
+            lock (_lockAuthorizedClients)
+                authorizedClients.Remove(client);
         }
 
         public void RemoveClientMessenger(Socket client, Socket messenger)
         {
-            lock (_lockClientAndMessenger) clientAndMessenger.Remove(new KeyValuePair<Socket, Socket>(client, messenger));
+            lock (_lockClientAndMessenger)
+                clientAndMessenger.Remove(new KeyValuePair<Socket, Socket>(client, messenger));
         }
 
         public Socket GetClientMessenger(Socket client)
         {
-            lock (_lockClientAndMessenger) return clientAndMessenger.Find(kvp => kvp.Key.RemoteEndPoint.Equals(client.RemoteEndPoint)).Value;
+            Socket messenger;
+            lock (_lockClientAndMessenger)
+                messenger = clientAndMessenger.Find(kvp => kvp.Key.RemoteEndPoint.Equals(client.RemoteEndPoint)).Value;
+            return messenger;
         }
 
         public Socket GetClientFromProfile(UserProfile profile)
         {
-            lock (_lockAuthorizedClients) return authorizedClients.First(auth => ProfilesAreEquals(auth.Value, profile)).Key;
+            Socket client;
+            lock (_lockAuthorizedClients)
+                client = authorizedClients.First(auth => ProfilesAreEquals(auth.Value, profile)).Key;
+            return client;
         }
 
         public bool ProfilesAreEquals(UserProfile prof1, UserProfile prof2)
@@ -112,12 +134,18 @@ namespace Persistence
 
         public UserProfile GetUserByName(string username)
         {
-            lock (_lockStoredProfiles) return storedUserProfiles.First(prof => prof.UserName.Equals(username));
+            UserProfile profile;
+            lock (_lockStoredProfiles)
+                profile = storedUserProfiles.First(prof => prof.UserName.Equals(username));
+            return profile;
         }
 
         public UserProfile GetProfileFromClient(Socket client)
         {
-            lock (_lockAuthorizedClients) return authorizedClients.First(auth => ClientsAreEquals(auth.Key, client)).Value;
+            UserProfile profile;
+            lock (_lockAuthorizedClients)
+                profile = authorizedClients.First(auth => ClientsAreEquals(auth.Key, client)).Value;
+            return profile;
         }
 
         private bool ClientsAreEquals(Socket client1, Socket client2)
@@ -127,12 +155,14 @@ namespace Persistence
 
         public void AddUserProfile(UserProfile profile)
         {
-            lock (_lockStoredProfiles) storedUserProfiles.Add(profile);
+            lock (_lockStoredProfiles)
+                storedUserProfiles.Add(profile);
         }
 
         public void AddClientAuthorization(Socket client, UserProfile profile)
         {
-            lock (_lockAuthorizedClients) authorizedClients.Add(client, profile);
+            lock (_lockAuthorizedClients)
+                authorizedClients.Add(client, profile);
         }
         internal void DeleteUserProfile(UserProfile toDelete)
         {
