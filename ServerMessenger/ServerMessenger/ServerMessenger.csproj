@@ -32,9 +32,15 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>dialogue.ico</ApplicationIcon>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Runtime.Remoting" />
+    <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -43,11 +49,32 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Program.cs" />
+    <Compile Include="Server.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\ClientMessenger\ClientMessenger\ClientMessenger.csproj">
+      <Project>{3156aa2a-0732-4bbc-a130-993afc8b1384}</Project>
+      <Name>ClientMessenger</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\ClientMessenger\MessengerDomain\ProtocolDomain.csproj">
+      <Project>{8ad99637-1d38-4973-bbfb-e714c90ae5b5}</Project>
+      <Name>ProtocolDomain</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\ClientMessenger\Persistence\Persistence.csproj">
+      <Project>{3E93662C-E212-4CD5-B770-2BD7E550F13E}</Project>
+      <Name>Persistence</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\ClientMessenger\ServerMSQM\ServerMSMQ.csproj">
+      <Project>{0F790509-3B5B-4476-AA3E-4BDF71627700}</Project>
+      <Name>ServerMSMQ</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="dialogue.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

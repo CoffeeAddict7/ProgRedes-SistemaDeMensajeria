@@ -5,6 +5,8 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServerMessenger", "ServerMessenger\ServerMessenger.csproj", "{0BBEB1A4-D078-4024-8AE1-95F28F77B826}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WSHostMessenger", "WSHostMessenger\WSHostMessenger.csproj", "{C8CD1E8A-A339-4667-BA88-60D64B51B0CC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{0BBEB1A4-D078-4024-8AE1-95F28F77B826}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0BBEB1A4-D078-4024-8AE1-95F28F77B826}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0BBEB1A4-D078-4024-8AE1-95F28F77B826}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8CD1E8A-A339-4667-BA88-60D64B51B0CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C8CD1E8A-A339-4667-BA88-60D64B51B0CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C8CD1E8A-A339-4667-BA88-60D64B51B0CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C8CD1E8A-A339-4667-BA88-60D64B51B0CC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
