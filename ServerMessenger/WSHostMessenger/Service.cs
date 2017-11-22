@@ -18,7 +18,6 @@ namespace WSHostMessenger
                 Uri httpBaseAddress = new Uri("http://"+ serviceIp + ":8719/MessengerService");
      
                 messengerServiceHost = new ServiceHost(typeof(WSHostMessenger.WSUserProfiles), httpBaseAddress);
-
                 messengerServiceHost.AddServiceEndpoint(typeof(WSHostMessenger.IWSUserProfile), new WSHttpBinding(), "");
 
                 ServiceMetadataBehavior serviceBehavior = new ServiceMetadataBehavior();

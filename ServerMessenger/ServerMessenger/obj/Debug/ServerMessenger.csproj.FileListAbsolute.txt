@@ -19,3 +19,4 @@ Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Debug\Messe
 Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Debug\ServerMessenger.csprojResolveAssemblyReference.cache
 Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Debug\ServerMessenger.exe
 Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Debug\ServerMessenger.pdb
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Debug\ServerMessenger.exe.config

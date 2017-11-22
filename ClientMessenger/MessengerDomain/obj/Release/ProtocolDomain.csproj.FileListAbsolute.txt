@@ -4,5 +4,6 @@ C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ClientMessenger\MessengerDomain
 C:\Users\alumnoFI\Desktop\MartinGran╠âa178499\ClientMessenger\MessengerDomain\obj\Release\MessengerDomain.pdb
 \\psf\Martin\ProgRedes-SistemaDeMensajeria\ClientMessenger\MessengerDomain\bin\Release\MessengerDomain.dll
 \\psf\Martin\ProgRedes-SistemaDeMensajeria\ClientMessenger\MessengerDomain\bin\Release\MessengerDomain.pdb
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ClientMessenger\MessengerDomain\obj\Release\ProtocolDomain.csprojResolveAssemblyReference.cache
 \\psf\Martin\ProgRedes-SistemaDeMensajeria\ClientMessenger\MessengerDomain\obj\Release\MessengerDomain.dll
 \\psf\Martin\ProgRedes-SistemaDeMensajeria\ClientMessenger\MessengerDomain\obj\Release\MessengerDomain.pdb

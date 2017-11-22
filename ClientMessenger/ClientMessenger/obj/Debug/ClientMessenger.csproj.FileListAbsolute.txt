@@ -15,3 +15,4 @@ Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Debug\Messe
 Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Debug\ClientMessenger.csprojResolveAssemblyReference.cache
 Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Debug\ClientMessenger.exe
 Y:\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\obj\Debug\ClientMessenger.pdb
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ClientMessenger\ClientMessenger\bin\Debug\ClientMessenger.exe.config
