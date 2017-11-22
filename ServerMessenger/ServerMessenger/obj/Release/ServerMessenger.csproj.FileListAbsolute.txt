@@ -18,3 +18,17 @@ Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Release\Mes
 Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Release\ServerMessenger.csprojResolveAssemblyReference.cache
 Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Release\ServerMessenger.exe
 Y:\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Release\ServerMessenger.pdb
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Release\ServerMessenger.exe.config
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Release\ServerMessenger.exe
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Release\ServerMessenger.pdb
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Release\ServerMessenger.exe
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Release\ServerMessenger.pdb
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Release\ClientMessenger.exe
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Release\MessengerDomain.dll
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Release\Persistence.dll
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Release\ServerMSMQ.exe
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Release\ClientMessenger.pdb
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Release\MessengerDomain.pdb
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Release\Persistence.pdb
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\bin\Release\ServerMSMQ.pdb
+\\psf\Martin\ProgRedes-SistemaDeMensajeria\ServerMessenger\ServerMessenger\obj\Release\ServerMessenger.csprojResolveAssemblyReference.cache

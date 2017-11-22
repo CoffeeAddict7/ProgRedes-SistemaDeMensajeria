@@ -178,7 +178,7 @@ namespace Persistence
         internal void ModifyUserProfile(UserProfile toModify, string newUserName, string newPassword)
         {
             lock (_lockStoredProfiles)            
-                storedUserProfiles.Find(prof => ProfilesAreEquals(prof, toModify)).UpdateProfileInfo(newUserName, newPassword);            
+                storedUserProfiles.Find(prof => ProfilesAreEquals(prof, toModify)).UpdateProfileInfo(newUserName, newPassword);                             
         }
     }
 }

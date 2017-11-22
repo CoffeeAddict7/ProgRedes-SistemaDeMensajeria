@@ -247,7 +247,8 @@ namespace ServerMessenger
                 UserProfile profile = GetProfileConnectedToClient(client);
                 username = profile.UserName;
             }
-            serverLog.SendMessage(chatMsg.Command, username, errorMsg);
+            string operation = ChatData.GetRequestOperationFromCommand(chatMsg.Command);
+            serverLog.SendErrorMessage(operation, username, errorMsg);
         }
 
         private static void ProcessByProtocolCommmand(Socket client, ChatProtocol chatMsg)
@@ -317,7 +318,7 @@ namespace ServerMessenger
         private static void SendSelectedFileAndNotify(Socket client, ChatProtocol chatMsg, UserProfile profile, string selectedStoredFile, string responsePayload)
         {
             ChatProtocol response = protManager.CreateResponseOkProtocol(chatMsg.Command, responsePayload);
-            serverLog.SendMessage("Download file", profile.UserName, "Success. File " + chatMsg.Payload + " sent to user");
+            serverLog.SendDetailedMessage("Download file", profile.UserName, "Success. File " + chatMsg.Payload + " sent to user");
             NotifyClientWithPackage(client, response.Package);
             SendFileToClient(client, selectedStoredFile);
         }
@@ -326,7 +327,7 @@ namespace ServerMessenger
         {
             ChatProtocol response = protManager.CreateResponseOkProtocol(chatMsg.Command, GenerateStoredFilesList());
             NotifyClientWithPackage(client, response.Package);
-            serverLog.SendMessage("View uploaded files", profile.UserName, "Server response with files for download");
+            serverLog.SendDetailedMessage("View files", profile.UserName, "Server response with files for download");
         }
 
         private static void SendFileToClient(Socket client, string selectedStoredFile)
@@ -377,7 +378,7 @@ namespace ServerMessenger
             ChatProtocol responseAfterUpload = protManager.CreateResponseOkProtocol(chatMsg.Command, "File upload completed!");
             NotifyClientWithPackage(client, responseAfterUpload.Package);
             UserProfile profile = GetProfileConnectedToClient(client);
-            serverLog.SendMessage("Upload file", profile.UserName, "Uploaded file " + fileName + "of size " + (fileBytes/1000) + " KB");
+            serverLog.SendDetailedMessage("Upload file", profile.UserName, "Uploaded file " + fileName + "of size " + (fileBytes/1000) + " KB");
         }
 
         private static void ValidateClientConnected(Socket client, string command)
@@ -426,12 +427,12 @@ namespace ServerMessenger
                 if (!ProfileUserNameExists(profileForReading))
                     throw new Exception("Error: Profile doesn't exists");
                 RespondWithPendingMessagesFromProfile(client, profile, profileForReading);
-                serverLog.SendMessage("Unseen messages view", profile.UserName, "Server response with messages from " + profileForReading);
+                serverLog.SendDetailedMessage("Unseen messages", profile.UserName, "Server response with messages from " + profileForReading);
             }
             else
             {
                 RespondWithProfilesOfPendingMessages(client, chatMsg, profile);
-                serverLog.SendMessage("Unseen messages view", profile.UserName, "Server response with usernames that left messages");
+                serverLog.SendDetailedMessage("Unseen messages", profile.UserName, "Server response with usernames that left messages");
             }      
         }
 
@@ -514,7 +515,7 @@ namespace ServerMessenger
                 recieverProf.UnSetLiveChatProfile();
                 SearchAndSendLiveChatMessage(recieverClient, ChatData.LIVECHAT_END, senderProf.UserName, ChatData.ENDED_LIVECHAT);
             }
-            serverLog.SendMessage("End online chat", senderProf.UserName, "Success. Online chat ended with "+recieverProf.UserName);            
+            serverLog.SendDetailedMessage("End online chat", senderProf.UserName, "Success. Online chat ended with "+recieverProf.UserName);            
         }
 
         private static Socket GetAuthorizedClientFromProfile(UserProfile profile)
@@ -548,7 +549,7 @@ namespace ServerMessenger
             senderProf.SetLiveChatProfile(recieverProf, false);
             ChatProtocol senderResponse = protManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, recieverProf.UserName + " is chatting with other user. Wait or cancel chat mode");
             NotifyClientWithPackage(client, senderResponse.Package);
-            serverLog.SendMessage("Live chat", senderProf.UserName, "Waiting for " + recieverProf.UserName + " to accept live chat");
+            serverLog.SendDetailedMessage("Live chat", senderProf.UserName, "Waiting for " + recieverProf.UserName + " to accept live chat");
         }
 
         private static void SetLiveChatProfileAndWaitForClient(Socket client, UserProfile senderProf, UserProfile recieverProf)
@@ -556,7 +557,7 @@ namespace ServerMessenger
             senderProf.SetLiveChatProfile(recieverProf, false);
             ChatProtocol senderResponse = protManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, "Waiting for: " + recieverProf.UserName + " to chat with you...");
             NotifyClientWithPackage(client, senderResponse.Package);
-            serverLog.SendMessage("Live chat", senderProf.UserName, "Waiting for " + recieverProf.UserName + " to accept live chat");
+            serverLog.SendDetailedMessage("Live chat", senderProf.UserName, "Waiting for " + recieverProf.UserName + " to accept live chat");
         }
 
         private static void ApplyLiveChatMessage(Socket client, string chatMessage, UserProfile senderProf, UserProfile recieverProf, Socket recieverClient)
@@ -564,7 +565,7 @@ namespace ServerMessenger
             SearchAndSendLiveChatMessage(recieverClient, ChatData.LIVECHAT_CHAT, senderProf.UserName, chatMessage);
             ChatProtocol senderResponse = protManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, "");
             NotifyClientWithPackage(client, senderResponse.Package);
-            serverLog.SendMessage("Live chat", senderProf.UserName, "Live message sent to " + recieverProf.UserName);
+            serverLog.SendDetailedMessage("Live chat", senderProf.UserName, "Live message sent to " + recieverProf.UserName);
         }
 
         private static void SearchAndSendLiveChatMessage(Socket recieverClient, string messageType, string sender, string message)
@@ -583,7 +584,7 @@ namespace ServerMessenger
             SearchAndSendLiveChatMessage(recieverClient, ChatData.LIVECHAT_CHAT, senderProf.UserName, ChatData.BEGIN_LIVECHAT);
             ChatProtocol senderResponse = protManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, ChatData.BEGIN_LIVECHAT);
             NotifyClientWithPackage(client, senderResponse.Package);
-            serverLog.SendMessage("Live chat", senderProf.UserName, "Success. Begin live chat with " + recieverProf.UserName);
+            serverLog.SendDetailedMessage("Live chat", senderProf.UserName, "Success. Begin live chat with " + recieverProf.UserName);
         }
 
         private static void EndOfflineChat(Socket client, UserProfile senderProf, UserProfile recieverProf)
@@ -591,7 +592,7 @@ namespace ServerMessenger
             senderProf.UnSetLiveChatProfile();
             ChatProtocol response = protManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_END, ChatData.ENDED_LIVECHAT);
             NotifyClientWithPackage(client, response.Package);
-            serverLog.SendMessage("End offline chat", senderProf.UserName, "Success. Offline chat ended with " + recieverProf.UserName);
+            serverLog.SendDetailedMessage("End offline chat", senderProf.UserName, "Success. Offline chat ended with " + recieverProf.UserName);
         }
 
         private static void OfflineChat(Socket client, string chatMessage, UserProfile senderProf, UserProfile recieverProf)
@@ -615,7 +616,7 @@ namespace ServerMessenger
             recieverProf.AddPendingMessage(senderProf, chatMessage);
             ChatProtocol response = protManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, "");
             NotifyClientWithPackage(client, response.Package);
-            serverLog.SendMessage("Offline chat", senderProf.UserName, "Success. Added pending message to " + recieverProf.UserName);
+            serverLog.SendDetailedMessage("Offline chat", senderProf.UserName, "Success. Added pending message to " + recieverProf.UserName);
         }
 
         private static void BeginOfflineChat(Socket client, UserProfile senderProf, UserProfile recieverProf)
@@ -623,7 +624,7 @@ namespace ServerMessenger
             senderProf.SetLiveChatProfile(recieverProf, false);
             ChatProtocol response = protManager.CreateLiveChatResponseProtocol(recieverProf.UserName, ChatData.LIVECHAT_CHAT, "Begin chat... He will recieve your messages when he connects");
             NotifyClientWithPackage(client, response.Package);
-            serverLog.SendMessage("Offline chat", senderProf.UserName, "Success. Begin offline chat with " + recieverProf.UserName);
+            serverLog.SendDetailedMessage("Offline chat", senderProf.UserName, "Success. Begin offline chat with " + recieverProf.UserName);
         }
 
         private static void CheckLiveChatMessageInfo(Socket client, string chatProfile, string chatType)
@@ -659,11 +660,11 @@ namespace ServerMessenger
             if (accept)
             {
                 profileToReply.AddFriend(clientProfile);
-                serverLog.SendMessage("Friend Request reply", clientProfile.UserName, "Accepted friend request from " + profileToReply.UserName);
+                serverLog.SendDetailedMessage("Friend request reply", clientProfile.UserName, "Accepted friend request from " + profileToReply.UserName);
             }
             else
             {
-                serverLog.SendMessage("Friend Request reply",clientProfile.UserName, "Declined friend request from " + profileToReply.UserName);
+                serverLog.SendDetailedMessage("Friend request reply",clientProfile.UserName, "Declined friend request from " + profileToReply.UserName);
             }
             ChatProtocol response = protManager.CreateResponseOkProtocol(protocol.Command);
             NotifyClientWithPackage(client, response.Package);
@@ -703,7 +704,7 @@ namespace ServerMessenger
             ChatProtocol response = protManager.CreateResponseOkProtocol(protocol.Command, payload);
             NotifyClientWithPackage(client, response.Package);
             UserProfile profile = GetProfileConnectedToClient(client);
-            serverLog.SendMessage("Pending friend requests view", profile.UserName, "Server response with user pending friend requests");
+            serverLog.SendDetailedMessage("Pending friend requests", profile.UserName, "Server response with user pending friend requests");
         }
 
         private static string GeneratePendingFriendRequestsPayload(Socket client)
@@ -744,12 +745,12 @@ namespace ServerMessenger
             if (sender.IsFriendWith(reciever))
             {
                 responseProtocol = protManager.CreateResponseOkProtocol(protocol.Command, "Now friends with " + reciever.UserName);
-                serverLog.SendMessage("Send friend request", sender.UserName, "Success. Now friends with " + reciever.UserName);
+                serverLog.SendDetailedMessage("Send friend request", sender.UserName, "Success. Now friends with " + reciever.UserName);
             }
             else
             {
                 responseProtocol = protManager.CreateResponseOkProtocol(protocol.Command);
-                serverLog.SendMessage("Send friend request", sender.UserName, "Success. Friend request sent to " + reciever.UserName);
+                serverLog.SendDetailedMessage("Send friend request", sender.UserName, "Success. Friend request sent to " + reciever.UserName);
             }
             NotifyClientWithPackage(client, responseProtocol.Package);
             
@@ -798,7 +799,7 @@ namespace ServerMessenger
             ChatProtocol responseProtocol = protManager.CreateResponseOkProtocol(protocol.Command, payload);
             NotifyClientWithPackage(client, responseProtocol.Package);
             UserProfile profile = GetProfileConnectedToClient(client);
-            serverLog.SendMessage("Friend list view", profile.UserName, "Server response with user friend list");
+            serverLog.SendDetailedMessage("Friend list", profile.UserName, "Server response with user friend list");
         }
 
         private static void ValidateFriendListInformation(Socket client, ChatProtocol protocol)
@@ -834,7 +835,7 @@ namespace ServerMessenger
             ChatProtocol responseProtocol = protManager.CreateResponseOkProtocol(protocol.Command, payload);
             NotifyClientWithPackage(client, responseProtocol.Package);
             UserProfile profile = GetProfileConnectedToClient(client);
-            serverLog.SendMessage("Connected users", profile.UserName, "Server response with online users");
+            serverLog.SendDetailedMessage("Connected users", profile.UserName, "Server response with online users");
         }
 
         private static void ValidateOnlineUsersInformation(Socket client, ChatProtocol protocol)
@@ -887,7 +888,7 @@ namespace ServerMessenger
             context.RemoveClientAuthorization(client);
             ChatProtocol response = protManager.CreateResponseOkProtocol(protocol.Command);
             NotifyClientWithPackage(client, response.Package);
-            serverLog.SendMessage("User logout", toLogout.UserName, "Logged out successfully");
+            serverLog.SendDetailedMessage("Logout", toLogout.UserName, "Logged out successfully");
         }
 
         private static void LogoutVerification(Socket client, ChatProtocol protocol)
@@ -916,7 +917,7 @@ namespace ServerMessenger
             CreateProfileAndLogin(client, user, password);
             ChatProtocol response = protManager.CreateResponseOkProtocol(protocol.Command);
             NotifyClientWithPackage(client, response.Package);
-            serverLog.SendMessage("User registration", user, "Registration successfully");    
+            serverLog.SendDetailedMessage("Register", user, "Registration successfully");    
         }
 
         private static void CreateProfileAndLogin(Socket client, string user, string password)
@@ -956,7 +957,7 @@ namespace ServerMessenger
             LoginClientAsUserProfile(client, user, password);
             ChatProtocol response = protManager.CreateResponseOkProtocol(protocol.Command);
             NotifyClientWithPackage(client, response.Package);
-            serverLog.SendMessage("User login", user, "Logged in successfully");
+            serverLog.SendDetailedMessage("Login", user, "Logged in successfully");
         }
 
         private static void NotifyClientWithPackage(Socket client, string resPackage)

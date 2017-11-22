@@ -31,5 +31,58 @@ namespace MessengerDomain
         public static string PENDING_MSGS_USERS = "USERS";
         public static string PENDING_MSGS_PROFILE_MSGS = "PROFILE";
         public static ICollection<string> acceptedFriendRequestReply = new List<String> { FRIEND_REQUEST_YES_REPLY, FRIEND_REQUEST_NO_REPLY};
+
+
+        public static string GetRequestOperationFromCommand(string cmd)
+        {
+            string operation;
+            switch (cmd)
+            {
+                case "00":
+                    operation = "Logout";
+                    break;
+                case "01":
+                    operation = "Login";
+                    break;
+                case "02":
+                    operation = "Register";
+                    break;
+                case "03":
+                    operation = "Connected users";
+                    break;
+                case "04":
+                    operation = "Friend list";
+                    break;
+                case "05":
+                    operation = "Send friend request";
+                    break;
+                case "06":
+                    operation = "Pending friend requests";
+                    break;
+                case "07":
+                    operation = "Friend request reply";
+                    break;
+                case "08":
+                    operation = "Chat mode";
+                    break;
+                case "09":
+                    operation = "Unseen messages";
+                    break;
+                case "10":
+                    operation = "Upload file";
+                    break;
+                case "11":
+                    operation = "View/Download files";
+                    break;
+                default:
+                    operation = "Unidentified";
+                    break;
+            }
+            return operation;
+        }
+
+
+
+
     }
 }

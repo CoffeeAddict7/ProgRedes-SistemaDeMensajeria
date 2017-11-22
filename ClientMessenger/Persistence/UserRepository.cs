@@ -36,6 +36,7 @@ namespace Persistence
             UserProfile toDelete = context.GetUserByName(username);
             if (ProfileIsOnUse(toDelete))
                 throw new Exception("Error: Cannot delete profile while is logged in");
+            CheckIfProfileIsReceivingMessages(toDelete, "delete");
             context.DeleteUserProfile(toDelete); 
         }
 
@@ -57,8 +58,17 @@ namespace Persistence
                 throw new Exception("Error: The new username is already registered");
             UserProfile toModify = context.GetUserByName(profile);
             if (ProfileIsOnUse(toModify))
-                throw new Exception("Error: Cannot update profile while is logged in");            
-            context.ModifyUserProfile(toModify, newUserName, newPassword);                 
+                throw new Exception("Error: Cannot update profile while is logged in");
+            CheckIfProfileIsReceivingMessages(toModify, "modify");
+
+            context.ModifyUserProfile(toModify, newUserName, newPassword);
+        }
+
+        private void CheckIfProfileIsReceivingMessages(UserProfile profile, string operation)
+        {
+            foreach (UserProfile user in context.GetUserProfiles())
+                if (user.HasLiveChatProfileSet() && context.ProfilesAreEquals(user.GetLiveChatProfile(), profile))
+                    throw new Exception("Error: Cannot "+ operation + " because an user is sending " + profile.UserName + " offline messages");
         }
     }
 }

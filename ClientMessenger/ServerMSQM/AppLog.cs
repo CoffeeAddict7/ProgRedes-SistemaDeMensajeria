@@ -11,11 +11,17 @@ namespace ServerMSMQ
             msgQueue = new MessageQueue(queueName);
         }
 
-        public void SendMessage(string operation, string user, string detail)
+        public void SendDetailedMessage(string operation, string user, string detail)
         {
             string messageData = "Operation: " + operation + " - User: " + user + " - Details: " + detail;
             Message msg = new Message(messageData);
-            msgQueue.Send(msg);            
+            msgQueue.Send(msg);
+        }
+        public void SendErrorMessage(string operation, string user, string error)
+        {
+            string messageData = "Operation: " + operation + " - User: " + user + " - " + error;
+            Message msg = new Message(messageData);
+            msgQueue.Send(msg);
         }
     }
 }

@@ -18,16 +18,13 @@ namespace ClientMessenger
         private static NetworkStream netStream;
         private static NetworkStream netStreamMessenger;
         private static Byte[] dataRead;
-        private static Byte[] dataReadMessenger;
         private static Byte[] dataWrite;
+        private static Byte[] dataReadMessenger;
         private static ProtocolManager chatManager;
         private static string serverErrorMsg = "Server disconnected. Unable to establish connection";
         private static bool liveChatting = false;
         private static string liveChatUser = "";
         private static string fileToSend;
-        private static string ServerIp;
-        private static int ServerPort;
-        private static string ClientIp;
         private static string filesDownloadDirectory = "MessengerFiles";
 
         static void Main()
@@ -73,20 +70,14 @@ namespace ClientMessenger
         {
             try
             {
-                ConfigurationManager.RefreshSection("appSettings");
-                ServerIp = ConfigurationManager.AppSettings["Ip"];
-                ServerPort = Int32.Parse(ConfigurationManager.AppSettings["Port"]);
-                ClientIp = ConfigurationManager.AppSettings["ClientIp"];
-
                 chatManager = new ProtocolManager();
                 InitializeClientConfiguration();
-                InitializeMessageClientConfiguration();
                 netStream = new NetworkStream(tcpClient);
                 netStreamMessenger = new NetworkStream(tcpMessageClient);
                 fileToSend = String.Empty;
                 Directory.CreateDirectory(filesDownloadDirectory);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 Console.WriteLine(serverErrorMsg);
             }
@@ -188,7 +179,12 @@ namespace ClientMessenger
             {
                 Console.WriteLine("> " + responseData);
                 if (chatPackage.Command.Equals(ChatData.CMD_UPLOAD_FILE))
-                    fileToSend = String.Empty;                
+                    fileToSend = String.Empty;
+                if (chatPackage.Command.Equals(ChatData.CMD_LIVECHAT))
+                {
+                    liveChatUser = String.Empty;
+                    liveChatting = false;
+                }
             }
             else
                 ProcessResponseOkByCommand(chatPackage.GetCommandNumber(), responseData);
@@ -280,7 +276,7 @@ namespace ClientMessenger
 
         private static void ShowFilesAvailablesForDownload(string[] messageInfo)
         {
-            if (messageInfo[1].Equals(String.Empty))
+            if (messageInfo[0].Length == 1)
                 Console.WriteLine("> No files uploaded");
             else
                 Console.WriteLine("> Uploaded files:");
@@ -474,19 +470,29 @@ namespace ClientMessenger
 
         private static void InitializeClientConfiguration()
         {
-            tcpClient = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);            
-            var clientEndPoint = new IPEndPoint(IPAddress.Parse(ClientIp), 0);
-            tcpClient.Bind(clientEndPoint);
-            tcpClient.Connect(new IPEndPoint(IPAddress.Parse(ServerIp),ServerPort));      
-                  
+            ConfigurationManager.RefreshSection("appSettings");
+            string ServerIp = ConfigurationManager.AppSettings["Ip"];
+            int ServerPort = Int32.Parse(ConfigurationManager.AppSettings["Port"]);
+            string ClientIp = ConfigurationManager.AppSettings["ClientIp"];
+            ConnectNetworkClient(ServerIp, ServerPort, ClientIp);
+            ConnectMessageClient(ServerIp, ServerPort, ClientIp);
             Console.WriteLine("Connected to server");
         }
-        private static void InitializeMessageClientConfiguration()
+
+        private static void ConnectMessageClient(string ServerIp, int ServerPort, string ClientIp)
         {
             tcpMessageClient = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            var clientEndPoint = new IPEndPoint(IPAddress.Parse(ClientIp), 0);           
-            tcpMessageClient.Bind(clientEndPoint);
+            var messageEndPoint = new IPEndPoint(IPAddress.Parse(ClientIp), 0);
+            tcpMessageClient.Bind(messageEndPoint);
             tcpMessageClient.Connect(new IPEndPoint(IPAddress.Parse(ServerIp), ServerPort));
+        }
+
+        private static void ConnectNetworkClient(string ServerIp, int ServerPort, string ClientIp)
+        {
+            tcpClient = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            var clientEndPoint = new IPEndPoint(IPAddress.Parse(ClientIp), 0);
+            tcpClient.Bind(clientEndPoint);
+            tcpClient.Connect(new IPEndPoint(IPAddress.Parse(ServerIp), ServerPort));
         }
     }
 }
